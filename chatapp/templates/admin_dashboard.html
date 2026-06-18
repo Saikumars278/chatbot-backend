@@ -1,0 +1,211 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Admin Dashboard</title>
+  <link rel="stylesheet" href="{% static 'admin_dashboard.css' %}">
+</head>
+<body>
+
+  <div class="dashboard-layout">
+    <aside class="admin-sidebar">
+      <div class="sidebar-brand">
+        <div>S</div>
+        <h2>SmartBot</h2>
+      </div>
+
+      <nav>
+        <a href="#" class="active">Dashboard</a>
+        <a href="#users">Users</a>
+        <a href="#payments">Payments</a>
+        <a href="#subscriptions">Subscriptions</a>
+        <a href="#">Plans</a>
+      </nav>
+
+      <a href="/admin-logout/" class="logout-btn">Logout</a>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <div>
+          <h1>Admin Dashboard</h1>
+          <p>Corporate overview of SmartBot platform</p>
+        </div>
+
+        <div class="admin-profile">
+          <span>A</span>
+          <div>
+            <h4>Admin</h4>
+            <p>Super User</p>
+          </div>
+        </div>
+      </header>
+
+      <section class="stats-grid">
+        <div class="stat-card">
+          <p>Total Users</p>
+          <h2>{{ users_count }}</h2>
+        </div>
+
+        <div class="stat-card">
+          <p>Total Chats</p>
+          <h2>{{ chats_count }}</h2>
+        </div>
+
+        <div class="stat-card">
+          <p>Messages</p>
+          <h2>{{ messages_count }}</h2>
+        </div>
+
+        <div class="stat-card">
+          <p>Plans</p>
+          <h2>{{ plans_count }}</h2>
+        </div>
+
+        <div class="stat-card highlight">
+          <p>Payments</p>
+          <h2>{{ payments_count }}</h2>
+        </div>
+
+        <div class="stat-card">
+          <p>Subscriptions</p>
+          <h2>{{ subscriptions_count }}</h2>
+        </div>
+      </section>
+
+      <section class="table-card" id="users">
+        <div class="table-header">
+          <h2>Recent Users</h2>
+          <span>Latest 10 users</span>
+        </div>
+
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>Username</th>
+                <th>Email</th>
+                <th>Staff</th>
+                <th>Joined Date</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {% for user in recent_users %}
+              <tr>
+                <td>{{ user.username }}</td>
+                <td>{{ user.email|default:"No email" }}</td>
+                <td>
+                  {% if user.is_staff %}
+                    <span class="status active">Yes</span>
+                  {% else %}
+                    <span class="status pending">No</span>
+                  {% endif %}
+                </td>
+                <td>{{ user.date_joined|date:"d M Y" }}</td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="4">No users found</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="table-card" id="payments">
+        <div class="table-header">
+          <h2>Recent Payments</h2>
+          <span>Latest 10 records</span>
+        </div>
+
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>Plan</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Order ID</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {% for payment in payments %}
+              <tr>
+                <td>
+                  {% if payment.user %}
+                    {{ payment.user.username }}
+                  {% else %}
+                    Guest
+                  {% endif %}
+                </td>
+                <td>{{ payment.plan_name }}</td>
+                <td>₹{{ payment.amount }}</td>
+                <td>
+                  <span class="status {{ payment.status }}">
+                    {{ payment.status }}
+                  </span>
+                </td>
+                <td>{{ payment.razorpay_order_id }}</td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="5">No payments found</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="table-card" id="subscriptions">
+        <div class="table-header">
+          <h2>Recent Subscriptions</h2>
+          <span>Latest 10 records</span>
+        </div>
+
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>Plan</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {% for sub in subscriptions %}
+              <tr>
+                <td>
+                  {% if sub.user %}
+                    {{ sub.user.username }}
+                  {% else %}
+                    {{ sub.user_name }}
+                  {% endif %}
+                </td>
+                <td>{{ sub.plan.name }}</td>
+                <td>
+                  <span class="status active">
+                    {{ sub.status }}
+                  </span>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="3">No subscriptions found</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+</body>
+</html>
