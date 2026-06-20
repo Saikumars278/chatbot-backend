@@ -1,0 +1,140 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartBot - {{ action }} Subscription</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'admin_crud.css' %}">
+</head>
+<body>
+
+  <div class="dashboard-layout">
+    <!-- Sidebar -->
+    <aside class="admin-sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-logo">S</div>
+        <h2>SmartBot</h2>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="/admin-dashboard/" class="nav-item">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="nav-icon">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6a7.5 7.5 0 1 0 7.5 7.5h-7.5V6Z" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 10.5H21A7.5 7.5 0 0 0 13.5 3v7.5Z" />
+          </svg>
+          Dashboard
+        </a>
+        <a href="/admin-users/" class="nav-item">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="nav-icon">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.109A11.386 11.386 0 0 1 10.089 20c-2.202 0-4.29-.626-6.089-1.722v-.109a4.125 4.125 0 0 1 7.532-2.492M9 11.25a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm0-3a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+          </svg>
+          Users
+        </a>
+        <a href="/admin-payments/" class="nav-item">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="nav-icon">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5h16.5c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125H3.75a1.125 1.125 0 0 1-1.125-1.125V5.625C2.625 5.004 3.129 4.5 3.75 4.5Z" />
+          </svg>
+          Payments
+        </a>
+        <a href="/admin-subscriptions/" class="nav-item active">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="nav-icon">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 0 0-3.7-3.7 48.656 48.656 0 0 0-7.324 0 4.006 4.006 0 0 0-3.7 3.7C4.547 9.547 4.5 10.768 4.5 12s.047 2.453.138 3.662a4.006 4.006 0 0 0 3.7 3.7 48.656 48.656 0 0 0 7.324 0 4.006 4.006 0 0 0 3.7-3.7c.092-1.209.138-2.453.138-3.662Z" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75" />
+          </svg>
+          Subscriptions
+        </a>
+      </nav>
+
+      <a href="/admin-logout/" class="logout-btn">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="logout-icon">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 9V5.25A2.25 2.25 0 0 1 10.5 3h6a2.25 2.25 0 0 1 2.25 2.25v13.5A2.25 2.25 0 0 1 16.5 21h-6a2.25 2.25 0 0 1-2.25-2.25V15m-3 0-3-3m0 0 3-3m-3 3H15" />
+        </svg>
+        Logout
+      </a>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <!-- Topbar Header -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <h1>{{ action }} Subscription</h1>
+          <p>Modify tier limits and active packages</p>
+        </div>
+
+        <div class="admin-profile">
+          <div class="avatar">A</div>
+          <div class="profile-info">
+            <h4>Administrator</h4>
+            <p>Super User</p>
+          </div>
+        </div>
+      </header>
+
+      <!-- Form Card -->
+      <div class="form-container">
+        <div class="form-header">
+          <h2>Subscription Details</h2>
+          <p>Provide user identifier and choose active platform access plan</p>
+        </div>
+
+        {% if error %}
+        <div class="error-message">{{ error }}</div>
+        {% endif %}
+
+        <form method="POST">
+          {% csrf_token %}
+          
+          <div class="form-group">
+            <label class="form-label" for="user_name">Username / Customer Name</label>
+            <input 
+              type="text" 
+              name="user_name" 
+              id="user_name" 
+              class="form-input" 
+              placeholder="e.g. Dhanush" 
+              value="{{ subscription.user_name|default:'' }}" 
+              required
+            >
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="plan_id">Service Plan</label>
+            <select name="plan_id" id="plan_id" class="form-select" required>
+              <option value="" disabled {% if not subscription %}selected{% endif %}>Select a plan...</option>
+              {% for plan in plans %}
+              <option 
+                value="{{ plan.id }}" 
+                {% if subscription.plan.id == plan.id %}selected{% endif %}
+              >
+                {{ plan.name }} ({{ plan.price }})
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="status">Subscription Status</label>
+            <select name="status" id="status" class="form-select" required>
+              <option value="active" {% if subscription.status == 'active' %}selected{% endif %}>Active</option>
+              <option value="pending" {% if subscription.status == 'pending' %}selected{% endif %}>Pending</option>
+              <option value="cancelled" {% if subscription.status == 'cancelled' %}selected{% endif %}>Cancelled</option>
+              <option value="failed" {% if subscription.status == 'failed' %}selected{% endif %}>Failed</option>
+            </select>
+          </div>
+
+          <div class="form-actions">
+            <a href="/admin-subscriptions/" class="btn-secondary">Cancel</a>
+            <button type="submit" class="btn-primary">Save Subscription</button>
+          </div>
+        </form>
+      </div>
+    </main>
+  </div>
+
+</body>
+</html>

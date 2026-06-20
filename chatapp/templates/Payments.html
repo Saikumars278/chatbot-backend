@@ -1,0 +1,110 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartBot - Payments Log</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'admin_crud.css' %}">
+</head>
+<body>
+
+  <div class="dashboard-layout">
+    {% with active_page='payments' %}{% include '_sidebar.html' %}{% endwith %}
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <!-- Topbar Header -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <h1>Payment Log</h1>
+          <p>Transaction records and Razorpay orders</p>
+        </div>
+
+        <div class="admin-profile">
+          <div class="avatar">A</div>
+          <div class="profile-info">
+            <h4>Administrator</h4>
+            <p>Super User</p>
+          </div>
+        </div>
+      </header>
+
+      <section class="table-card" id="payments-section">
+        <div class="table-header" style="flex-wrap: wrap; gap: 16px;">
+          <div>
+            <h2>Payments Transactions</h2>
+            <p class="table-sub">Razorpay payment verification and gateway details</p>
+          </div>
+          
+          <form method="GET" class="filter-form" style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+            <div class="filter-group" style="display: flex; align-items: center; gap: 8px;">
+              <label for="status" style="font-size: 13px; font-weight: 600; color: var(--text-muted);">Status:</label>
+              <select name="status" id="status" class="form-select" style="padding: 6px 12px; font-size: 13px; width: auto; background-color: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-color); border-radius: 6px; color: #ffffff;" onchange="this.form.submit()">
+                <option value="">All Statuses</option>
+                <option value="paid" {% if selected_status == 'paid' %}selected{% endif %}>Paid</option>
+                <option value="created" {% if selected_status == 'created' %}selected{% endif %}>Created</option>
+                <option value="failed" {% if selected_status == 'failed' %}selected{% endif %}>Failed</option>
+              </select>
+            </div>
+            
+            <div class="filter-group" style="display: flex; align-items: center; gap: 8px;">
+              <label for="plan" style="font-size: 13px; font-weight: 600; color: var(--text-muted);">Plan:</label>
+              <input type="text" name="plan" id="plan" class="form-input" style="padding: 6px 12px; font-size: 13px; width: 140px; background-color: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-color); border-radius: 6px; color: #ffffff;" placeholder="Search plan..." value="{{ selected_plan }}">
+            </div>
+            
+            <button type="submit" class="btn-primary" style="padding: 6px 14px; font-size: 13px; border-radius: 6px;">Filter</button>
+            {% if selected_status or selected_plan %}
+              <a href="/admin-payments/" class="btn-secondary" style="padding: 6px 14px; font-size: 13px; border-radius: 6px;">Clear</a>
+            {% endif %}
+          </form>
+        </div>
+
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>Plan</th>
+                <th>Amount</th>
+                <th>Payment Date</th>
+                <th>Order ID / Payment ID</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for payment in payments %}
+              <tr>
+                <td class="font-semibold">{{ payment.user }}</td>
+                <td>
+                  <span class="plan-pill">{{ payment.plan_name }}</span>
+                </td>
+                <td class="amount-val font-semibold">{{ payment.amount }}</td>
+                <td>{{ payment.payment_date }}</td>
+                <td>
+                  <div class="text-sm font-mono text-muted">{{ payment.razorpay_order_id|default:"N/A" }}</div>
+                  <div class="text-xs font-mono text-muted" style="margin-top: 2px;">{{ payment.razorpay_payment_id|default:"" }}</div>
+                </td>
+                <td>
+                  <span class="status-badge {{ payment.status }}">
+                    {{ payment.status }}
+                  </span>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="6" class="text-center text-muted py-8">No payments logged</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,82 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartBot - Manage Users</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'admin_crud.css' %}">
+</head>
+<body>
+
+  <div class="dashboard-layout">
+    {% with active_page='users' %}{% include '_sidebar.html' %}{% endwith %}
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <!-- Topbar Header -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <h1>Registered Users</h1>
+          <p>Complete directory of user accounts</p>
+        </div>
+
+        <div class="admin-profile">
+          <div class="avatar">A</div>
+          <div class="profile-info">
+            <h4>Administrator</h4>
+            <p>Super User</p>
+          </div>
+        </div>
+      </header>
+
+      <!-- Users Table Card -->
+      <section class="table-card" id="users-section">
+        <div class="table-header">
+          <div>
+            <h2>Users Directory</h2>
+            <p class="table-sub">Registered accounts and current plan durations</p>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Joined Date</th>
+                <th>Expiry Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for user in users %}
+              <tr>
+                <td class="font-semibold">{{ user.name }}</td>
+                <td class="text-muted">{{ user.email }}</td>
+                <td>{{ user.joined_date }}</td>
+                <td>
+                  {% if user.expiry_date != "N/A" %}
+                    <span class="status-date">{{ user.expiry_date }}</span>
+                  {% else %}
+                    <span class="status-date text-muted">No Plan</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="4" class="text-center text-muted py-8">No users found</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+</body>
+</html>

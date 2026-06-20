@@ -1,0 +1,99 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartBot - Manage Subscriptions</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'admin_crud.css' %}">
+</head>
+<body>
+
+  <div class="dashboard-layout">
+    {% with active_page='subscriptions' %}{% include '_sidebar.html' %}{% endwith %}
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <!-- Topbar Header -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <h1>Subscriptions Control</h1>
+          <p>Add, edit, or delete platform active subscriptions</p>
+        </div>
+
+        <div class="admin-profile">
+          <div class="avatar">A</div>
+          <div class="profile-info">
+            <h4>Administrator</h4>
+            <p>Super User</p>
+          </div>
+        </div>
+      </header>
+
+      <!-- Subscriptions Grid -->
+      <section class="table-card" id="subscriptions-section">
+        <div class="table-header">
+          <div>
+            <h2>Active User Subscriptions</h2>
+            <p class="table-sub">Manage user tier plans and statuses</p>
+          </div>
+          <a href="/admin-subscriptions/add/" class="btn-add-new">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            Add Subscription
+          </a>
+        </div>
+
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>Plan</th>
+                <th>Start Date</th>
+                <th>Expiry Date</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for sub in subscriptions %}
+              <tr>
+                <td class="font-semibold">{{ sub.user }}</td>
+                <td>
+                  <span class="plan-pill">{{ sub.plan_name }}</span>
+                </td>
+                <td>{{ sub.start_date }}</td>
+                <td>
+                  <span class="status-date font-medium">{{ sub.expiry_date }}</span>
+                </td>
+                <td>
+                  <span class="status-badge {{ sub.status }}">
+                    {{ sub.status }}
+                  </span>
+                </td>
+                <td>
+                  <div class="actions-cell">
+                    <a href="/admin-subscriptions/edit/{{ sub.id }}/" class="btn-edit-outline">Edit</a>
+                    <a href="/admin-subscriptions/delete/{{ sub.id }}/" class="btn-danger-outline" onclick="return confirm('Are you sure you want to delete this subscription?');">Delete</a>
+                  </div>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="6" class="text-center text-muted py-8">No subscriptions found</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+</body>
+</html>

@@ -39,21 +39,61 @@ def admin_login(request):
 
 @login_required(login_url="admin_login")
 def admin_dashboard(request):
-    users_count = User.objects.count()
-    chats_count = ChatHistory.objects.count()
-    messages_count = ChatMessage.objects.count()
+    users_count = User.objects.filter(is_superuser=False, is_staff=False).count()
     plans_count = Plan.objects.count()
     payments_count = Payment.objects.count()
     subscriptions_count = Subscription.objects.count()
 
-    recent_users = User.objects.all().order_by("-date_joined")[:10]
-    payments = Payment.objects.all().order_by("-id")[:10]
-    subscriptions = Subscription.objects.all().order_by("-id")[:10]
+    raw_users = User.objects.filter(is_superuser=False, is_staff=False).order_by("-date_joined")[:10]
+    recent_users = []
+    from datetime import timedelta
+    for u in raw_users:
+        sub = Subscription.objects.filter(user_name=u.username).order_by("-id").first()
+        if not sub and u.first_name:
+            sub = Subscription.objects.filter(user_name=u.first_name).order_by("-id").first()
+        
+        expiry_date = "N/A"
+        if sub:
+            expiry_date = (sub.created_at + timedelta(days=30)).strftime("%d %b %Y")
+        
+        recent_users.append({
+            "name": u.first_name if u.first_name else u.username,
+            "email": u.email if u.email else "No email",
+            "joined_date": u.date_joined.strftime("%d %b %Y") if u.date_joined else "N/A",
+            "expiry_date": expiry_date
+        })
+
+    raw_payments = Payment.objects.all().order_by("-id")[:10]
+    payments = []
+    for p in raw_payments:
+        # Since Payment doesn't link directly to User, try to find a user/subscription or default to Dhanush/Guest
+        user_display = "Guest"
+        # If there's an active subscription with same plan name around that time, or we can check first user
+        first_user = User.objects.first()
+        if first_user:
+            user_display = first_user.first_name or first_user.username
+        
+        payments.append({
+            "user": user_display,
+            "plan_name": p.plan_name,
+            "amount": f"₹{p.amount}",
+            "payment_date": p.created_at.strftime("%d %b %Y") if p.created_at else "N/A",
+            "status": p.status
+        })
+
+    raw_subs = Subscription.objects.all().order_by("-id")[:10]
+    subscriptions = []
+    for s in raw_subs:
+        subscriptions.append({
+            "user": s.user_name,
+            "plan_name": s.plan.name if s.plan else "N/A",
+            "start_date": s.created_at.strftime("%d %b %Y") if s.created_at else "N/A",
+            "expiry_date": (s.created_at + timedelta(days=30)).strftime("%d %b %Y") if s.created_at else "N/A",
+            "status": s.status
+        })
 
     context = {
         "users_count": users_count,
-        "chats_count": chats_count,
-        "messages_count": messages_count,
         "plans_count": plans_count,
         "payments_count": payments_count,
         "subscriptions_count": subscriptions_count,
@@ -207,6 +247,8 @@ def get_messages(request):
 
 @api_view(['POST'])
 def send_message(request):
+    import requests as http_requests
+
     user_text = request.data.get("message")
 
     if not user_text:
@@ -220,7 +262,67 @@ def send_message(request):
         text=user_text
     )
 
-    bot_reply_text = "Thanks for your message. I am processing your request."
+    # ── Google Gemini API (Free Tier) ──────────────────────────────────
+    # Get a FREE key at: https://aistudio.google.com/app/apikey
+    GEMINI_API_KEY = getattr(settings, 'GEMINI_API_KEY', '')
+
+    bot_reply_text = ""
+
+    if GEMINI_API_KEY:
+        try:
+            gemini_url = (
+                f"https://generativelanguage.googleapis.com/v1beta/models/"
+                f"gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
+            )
+            payload = {
+                "system_instruction": {
+                    "parts": [{"text": "You are SmartBot, a friendly and helpful AI assistant."}]
+                },
+                "contents": [
+                    {"parts": [{"text": user_text}]}
+                ],
+                "generationConfig": {
+                    "maxOutputTokens": 1024,
+                    "temperature": 0.7,
+                }
+            }
+            resp = http_requests.post(gemini_url, json=payload, timeout=30)
+            result = resp.json()
+            if resp.status_code == 200:
+                bot_reply_text = (
+                    result.get("candidates", [{}])[0]
+                    .get("content", {})
+                    .get("parts", [{}])[0]
+                    .get("text", "")
+                    .strip()
+                )
+            else:
+                err = result.get("error", {}).get("message", "Gemini API error")
+                print("Gemini Error:", err)
+        except Exception as e:
+            print("Gemini Request Exception:", str(e))
+
+    # ── Smart keyword fallback if no API key or empty response ──────────
+    if not bot_reply_text:
+        text_lower = user_text.lower()
+        if any(w in text_lower for w in ["hello", "hi", "hey", "greet"]):
+            bot_reply_text = "Hello! I'm SmartBot 👋 How can I assist you today?"
+        elif any(w in text_lower for w in ["how are you", "how r you"]):
+            bot_reply_text = "I'm doing great, thanks for asking! How can I help you?"
+        elif any(w in text_lower for w in ["price", "plan", "subscription", "cost", "upgrade"]):
+            bot_reply_text = "We offer 3 plans: **Plus** (Free), **Business** (₹1,800/mo), and **Pro** (₹10,699/mo). You can upgrade from the Upgrade button in the top bar."
+        elif any(w in text_lower for w in ["what can you do", "help", "feature"]):
+            bot_reply_text = "I can answer questions, help with your workflow, explain plans, and assist with general queries. Just ask me anything!"
+        elif any(w in text_lower for w in ["bye", "goodbye", "see you", "exit"]):
+            bot_reply_text = "Goodbye! Feel free to come back anytime. 👋"
+        elif any(w in text_lower for w in ["thank", "thanks"]):
+            bot_reply_text = "You're welcome! Is there anything else I can help with?"
+        elif any(w in text_lower for w in ["who are you", "what are you", "your name"]):
+            bot_reply_text = "I'm SmartBot, an AI assistant built to help you with your questions and tasks!"
+        elif "?" in user_text:
+            bot_reply_text = f"That's a great question! To get full AI-powered answers, add a free Gemini API key to your settings at https://aistudio.google.com/app/apikey"
+        else:
+            bot_reply_text = f"I received your message: \"{user_text}\". To enable full AI responses, please add a free Gemini API key in your Django settings (GEMINI_API_KEY)."
 
     bot_message = ChatMessage.objects.create(
         message_type="bot",
@@ -422,3 +524,149 @@ def verify_razorpay_payment(request):
             "success": False,
             "message": "Payment verification failed"
         })
+
+
+@login_required(login_url="admin_login")
+def admin_users(request):
+    raw_users = User.objects.filter(is_superuser=False, is_staff=False).order_by("-date_joined")
+    users_list = []
+    from datetime import timedelta
+    for u in raw_users:
+        sub = Subscription.objects.filter(user_name=u.username).order_by("-id").first()
+        if not sub and u.first_name:
+            sub = Subscription.objects.filter(user_name=u.first_name).order_by("-id").first()
+        
+        expiry_date = "N/A"
+        if sub:
+            expiry_date = (sub.created_at + timedelta(days=30)).strftime("%d %b %Y")
+        
+        users_list.append({
+            "name": u.first_name if u.first_name else u.username,
+            "email": u.email if u.email else "No email",
+            "joined_date": u.date_joined.strftime("%d %b %Y") if u.date_joined else "N/A",
+            "expiry_date": expiry_date
+        })
+    return render(request, "users.html", {"users": users_list})
+
+
+@login_required(login_url="admin_login")
+def admin_payments(request):
+    status_filter = request.GET.get("status", "")
+    plan_filter = request.GET.get("plan", "")
+    
+    payments_qs = Payment.objects.all().order_by("-id")
+    if status_filter:
+        payments_qs = payments_qs.filter(status=status_filter)
+    if plan_filter:
+        payments_qs = payments_qs.filter(plan_name__icontains=plan_filter)
+        
+    payments_list = []
+    first_user = User.objects.first()
+    user_display = first_user.first_name or first_user.username if first_user else "Guest"
+    for p in payments_qs:
+        payments_list.append({
+            "user": user_display,
+            "plan_name": p.plan_name,
+            "amount": f"₹{p.amount}",
+            "payment_date": p.created_at.strftime("%d %b %Y") if p.created_at else "N/A",
+            "status": p.status,
+            "razorpay_order_id": p.razorpay_order_id,
+            "razorpay_payment_id": p.razorpay_payment_id
+        })
+        
+    return render(request, "payments.html", {
+        "payments": payments_list,
+        "selected_status": status_filter,
+        "selected_plan": plan_filter
+    })
+
+
+@login_required(login_url="admin_login")
+def admin_subscriptions(request):
+    raw_subs = Subscription.objects.all().order_by("-id")
+    subs_list = []
+    from datetime import timedelta
+    for s in raw_subs:
+        subs_list.append({
+            "id": s.id,
+            "user": s.user_name,
+            "plan_name": s.plan.name if s.plan else "N/A",
+            "start_date": s.created_at.strftime("%d %b %Y") if s.created_at else "N/A",
+            "expiry_date": (s.created_at + timedelta(days=30)).strftime("%d %b %Y") if s.created_at else "N/A",
+            "status": s.status
+        })
+    return render(request, "subscriptions.html", {"subscriptions": subs_list})
+
+
+@login_required(login_url="admin_login")
+def subscription_add(request):
+    plans = Plan.objects.filter(is_active=True)
+    if request.method == "POST":
+        user_name = request.POST.get("user_name")
+        plan_id = request.POST.get("plan_id")
+        status = request.POST.get("status", "active")
+        
+        try:
+            plan = Plan.objects.get(id=plan_id)
+            Subscription.objects.create(
+                user_name=user_name,
+                plan=plan,
+                status=status
+            )
+            return redirect("admin_subscriptions")
+        except Plan.DoesNotExist:
+            return render(request, "subscription_form.html", {
+                "error": "Plan does not exist",
+                "plans": plans,
+                "action": "Add"
+            })
+            
+    return render(request, "subscription_form.html", {
+        "plans": plans,
+        "action": "Add"
+    })
+
+
+@login_required(login_url="admin_login")
+def subscription_edit(request, sub_id):
+    try:
+        sub = Subscription.objects.get(id=sub_id)
+    except Subscription.DoesNotExist:
+        return redirect("admin_subscriptions")
+        
+    plans = Plan.objects.filter(is_active=True)
+    if request.method == "POST":
+        user_name = request.POST.get("user_name")
+        plan_id = request.POST.get("plan_id")
+        status = request.POST.get("status", "active")
+        
+        try:
+            plan = Plan.objects.get(id=plan_id)
+            sub.user_name = user_name
+            sub.plan = plan
+            sub.status = status
+            sub.save()
+            return redirect("admin_subscriptions")
+        except Plan.DoesNotExist:
+            return render(request, "subscription_form.html", {
+                "error": "Plan does not exist",
+                "plans": plans,
+                "subscription": sub,
+                "action": "Edit"
+            })
+            
+    return render(request, "subscription_form.html", {
+        "subscription": sub,
+        "plans": plans,
+        "action": "Edit"
+    })
+
+
+@login_required(login_url="admin_login")
+def subscription_delete(request, sub_id):
+    try:
+        sub = Subscription.objects.get(id=sub_id)
+        sub.delete()
+    except Subscription.DoesNotExist:
+        pass
+    return redirect("admin_subscriptions")

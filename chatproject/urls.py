@@ -10,6 +10,12 @@ urlpatterns = [
     path("", views.admin_login, name="admin_login"),
     path("admin-dashboard/", views.admin_dashboard, name="admin_dashboard"),
     path("admin-logout/", views.admin_logout, name="admin_logout"),
+    path("admin-users/", views.admin_users, name="admin_users"),
+    path("admin-payments/", views.admin_payments, name="admin_payments"),
+    path("admin-subscriptions/", views.admin_subscriptions, name="admin_subscriptions"),
+    path("admin-subscriptions/add/", views.subscription_add, name="subscription_add"),
+    path("admin-subscriptions/edit/<int:sub_id>/", views.subscription_edit, name="subscription_edit"),
+    path("admin-subscriptions/delete/<int:sub_id>/", views.subscription_delete, name="subscription_delete"),
 
 
     path('api/signup/', signup, name='signup'),
