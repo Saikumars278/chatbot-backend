@@ -42,10 +42,18 @@ GUEST_SESSION_KEY = "guest_chat_ids"
 
 def admin_login(request):
     if request.method == "POST":
-        username = request.POST.get("username")
-        password = request.POST.get("password")
+        username_input = request.POST.get("username", "").strip()
+        password = request.POST.get("password", "")
 
-        user = authenticate(request, username=username, password=password)
+        user = authenticate(request, username=username_input, password=password)
+
+        if user is None and "@" in username_input:
+            try:
+                found_user = User.objects.filter(email__iexact=username_input).first()
+                if found_user:
+                    user = authenticate(request, username=found_user.username, password=password)
+            except Exception:
+                pass
 
         if user is not None:
             if user.is_superuser or user.is_staff:
