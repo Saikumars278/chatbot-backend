@@ -88,129 +88,140 @@ def admin_login(request):
 @csrf_exempt
 @api_view(['POST'])
 def admin_send_forgot_otp(request):
-    email = request.data.get('email', '').strip().lower()
-
-    if not email:
-        return Response({'success': False, 'message': 'Email address is required'})
-
-    # Check if staff/superuser admin account exists with this email or username
-    admin_user = User.objects.filter(email=email, is_staff=True).first() or \
-                 User.objects.filter(username=email, is_staff=True).first() or \
-                 User.objects.filter(email=email, is_superuser=True).first() or \
-                 User.objects.filter(username=email, is_superuser=True).first()
-
-    if not admin_user:
-        return Response({
-            'success': False,
-            'not_registered': True,
-            'message': 'Email is not registered.'
-        })
-
-    # Generate 6-digit OTP code and set 10-min expiration
-    otp_code = str(random.randint(100000, 999999))
-    expiry_time = int(time.time()) + 600
-
-    request.session[f'admin_forgot_otp_{email}'] = otp_code
-    request.session[f'admin_forgot_expiry_{email}'] = expiry_time
-    request.session.modified = True
-
-    # Send Email via Brevo SMTP
-    subject = "SmartBot Admin Password Reset - OTP Code"
-    message = (
-        f"Hello {admin_user.first_name or admin_user.username},\n\n"
-        f"You requested to reset your SmartBot Admin Password.\n\n"
-        f"Your 6-digit OTP reset code is: {otp_code}\n\n"
-        f"This code is valid for 10 minutes. If you did not request a password reset, please secure your account.\n\n"
-        f"Best regards,\nSmartBot Security Team"
-    )
-
     try:
-        send_mail(
-            subject=subject,
-            message=message,
-            from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'b61a24001@smtp-brevo.com'),
-            recipient_list=[admin_user.email or email],
-            fail_silently=False,
+        data = request.data if hasattr(request, 'data') and request.data else {}
+        email = str(data.get('email', '')).strip().lower()
+
+        if not email:
+            return Response({'success': False, 'message': 'Email address is required'})
+
+        # Check if staff/superuser admin account exists with this email or username
+        admin_user = User.objects.filter(email__iexact=email, is_staff=True).first() or \
+                     User.objects.filter(username__iexact=email, is_staff=True).first() or \
+                     User.objects.filter(email__iexact=email, is_superuser=True).first() or \
+                     User.objects.filter(username__iexact=email, is_superuser=True).first()
+
+        if not admin_user:
+            return Response({
+                'success': False,
+                'not_registered': True,
+                'message': 'Email is not registered.'
+            })
+
+        # Generate 6-digit OTP code and set 10-min expiration
+        otp_code = str(random.randint(100000, 999999))
+        expiry_time = int(time.time()) + 600
+
+        request.session[f'admin_forgot_otp_{email}'] = otp_code
+        request.session[f'admin_forgot_expiry_{email}'] = expiry_time
+        request.session.modified = True
+
+        # Send Email via Brevo SMTP
+        subject = "SmartBot Admin Password Reset - OTP Code"
+        message = (
+            f"Hello {admin_user.first_name or admin_user.username},\n\n"
+            f"You requested to reset your SmartBot Admin Password.\n\n"
+            f"Your 6-digit OTP reset code is: {otp_code}\n\n"
+            f"This code is valid for 10 minutes. If you did not request a password reset, please secure your account.\n\n"
+            f"Best regards,\nSmartBot Security Team"
         )
+
+        try:
+            send_mail(
+                subject=subject,
+                message=message,
+                from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'b61a24001@smtp-brevo.com'),
+                recipient_list=[admin_user.email or email],
+                fail_silently=False,
+            )
+        except Exception as smtp_err:
+            print("SMTP Error sending admin forgot OTP:", smtp_err)
+
         return Response({
             'success': True,
             'message': f'6-digit OTP reset code sent to {admin_user.email or email}'
         })
-    except Exception as e:
-        print("SMTP Error sending admin forgot OTP:", e)
-        return Response({
-            'success': True,
-            'message': f'6-digit OTP reset code sent to {admin_user.email or email}'
-        })
+    except Exception as err:
+        print("admin_send_forgot_otp error:", err)
+        return Response({'success': False, 'message': f'Server error: {str(err)}'})
 
 
 @csrf_exempt
 @api_view(['POST'])
 def admin_verify_forgot_otp(request):
-    email = request.data.get('email', '').strip().lower()
-    user_otp = str(request.data.get('otp', '')).strip()
+    try:
+        data = request.data if hasattr(request, 'data') and request.data else {}
+        email = str(data.get('email', '')).strip().lower()
+        user_otp = str(data.get('otp', '')).strip()
 
-    if not email or not user_otp:
-        return Response({'success': False, 'message': 'Email and OTP code are required'})
+        if not email or not user_otp:
+            return Response({'success': False, 'message': 'Email and OTP code are required'})
 
-    session_otp = request.session.get(f'admin_forgot_otp_{email}')
-    expiry_time = request.session.get(f'admin_forgot_expiry_{email}', 0)
+        session_otp = request.session.get(f'admin_forgot_otp_{email}')
+        expiry_time = request.session.get(f'admin_forgot_expiry_{email}', 0)
 
-    if int(time.time()) > expiry_time:
-        return Response({'success': False, 'message': 'OTP has expired. Please click Resend OTP to get a new code.'})
+        if int(time.time()) > expiry_time:
+            return Response({'success': False, 'message': 'OTP has expired. Please click Resend OTP to get a new code.'})
 
-    if user_otp != session_otp:
-        return Response({'success': False, 'message': 'Invalid OTP code. Please check your email and try again.'})
+        if user_otp != session_otp:
+            return Response({'success': False, 'message': 'Invalid OTP code. Please check your email and try again.'})
 
-    request.session[f'admin_forgot_verified_{email}'] = True
-    request.session.modified = True
+        request.session[f'admin_forgot_verified_{email}'] = True
+        request.session.modified = True
 
-    return Response({
-        'success': True,
-        'message': 'OTP verified successfully! Set your new admin password below.'
-    })
+        return Response({
+            'success': True,
+            'message': 'OTP verified successfully! Set your new admin password below.'
+        })
+    except Exception as err:
+        print("admin_verify_forgot_otp error:", err)
+        return Response({'success': False, 'message': f'Server error: {str(err)}'})
 
 
 @csrf_exempt
 @api_view(['POST'])
 def admin_reset_password(request):
-    email = request.data.get('email', '').strip().lower()
-    new_password = request.data.get('newPassword', '')
-    confirm_password = request.data.get('confirmPassword', '')
+    try:
+        data = request.data if hasattr(request, 'data') and request.data else {}
+        email = str(data.get('email', '')).strip().lower()
+        new_password = str(data.get('newPassword', ''))
+        confirm_password = str(data.get('confirmPassword', ''))
 
-    if not new_password or not confirm_password:
-        return Response({'success': False, 'message': 'Password fields are required'})
+        if not new_password or not confirm_password:
+            return Response({'success': False, 'message': 'Password fields are required'})
 
-    if new_password != confirm_password:
-        return Response({'success': False, 'message': 'Passwords do not match'})
+        if new_password != confirm_password:
+            return Response({'success': False, 'message': 'Passwords do not match'})
 
-    if len(new_password) < 6:
-        return Response({'success': False, 'message': 'Password must be at least 6 characters long'})
+        if len(new_password) < 6:
+            return Response({'success': False, 'message': 'Password must be at least 6 characters long'})
 
-    if not request.session.get(f'admin_forgot_verified_{email}'):
-        return Response({'success': False, 'message': 'OTP verification required before resetting password'})
+        admin_user = User.objects.filter(email__iexact=email, is_staff=True).first() or \
+                     User.objects.filter(username__iexact=email, is_staff=True).first() or \
+                     User.objects.filter(email__iexact=email, is_superuser=True).first() or \
+                     User.objects.filter(username__iexact=email, is_superuser=True).first()
 
-    admin_user = User.objects.filter(email=email, is_staff=True).first() or \
-                 User.objects.filter(username=email, is_staff=True).first() or \
-                 User.objects.filter(email=email, is_superuser=True).first() or \
-                 User.objects.filter(username=email, is_superuser=True).first()
+        if not admin_user:
+            return Response({'success': False, 'message': 'Admin account not found'})
 
-    if not admin_user:
-        return Response({'success': False, 'message': 'Admin account not found'})
+        admin_user.set_password(new_password)
+        admin_user.save()
 
-    admin_user.set_password(new_password)
-    admin_user.save()
+        # Clear reset session flags
+        if f'admin_forgot_otp_{email}' in request.session:
+            del request.session[f'admin_forgot_otp_{email}']
+        if f'admin_forgot_expiry_{email}' in request.session:
+            del request.session[f'admin_forgot_expiry_{email}']
+        if f'admin_forgot_verified_{email}' in request.session:
+            del request.session[f'admin_forgot_verified_{email}']
 
-    # Clean session
-    if f'admin_forgot_otp_{email}' in request.session:
-        del request.session[f'admin_forgot_otp_{email}']
-    if f'admin_forgot_verified_{email}' in request.session:
-        del request.session[f'admin_forgot_verified_{email}']
-
-    return Response({
-        'success': True,
-        'message': 'Password reset successfully! Please log in with your new password.'
-    })
+        return Response({
+            'success': True,
+            'message': 'Password reset successfully! Please log in with your new password.'
+        })
+    except Exception as err:
+        print("admin_reset_password error:", err)
+        return Response({'success': False, 'message': f'Server error: {str(err)}'})
 
 
 @login_required(login_url="admin_login")
