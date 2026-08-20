@@ -83,36 +83,20 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'chatproject.wsgi.application'
 
-# Database (Supabase PostgreSQL with fallback)
+# Database (Supabase PostgreSQL configuration)
 DEFAULT_SUPABASE_URL = "postgresql://postgres.okhisryqktpvpbrjveim:N7%21qV4%23zL9%40pR2%24xK8mT@aws-0-ap-northeast-1.pooler.supabase.com:5432/postgres"
-DATABASE_URL = os.getenv("DATABASE_URL", DEFAULT_SUPABASE_URL)
+DATABASE_URL = os.getenv("DATABASE_URL")
 
-if DATABASE_URL:
-    import dj_database_url
-    DATABASES = {
-        'default': dj_database_url.parse(
-            DATABASE_URL,
-            conn_max_age=0,
-        )
-    }
-elif os.getenv("DB_HOST"):
-    DATABASES = {
-        'default': {
-            'ENGINE': os.getenv('DB_ENGINE', 'django.db.backends.postgresql'),
-            'NAME': os.getenv('DB_NAME', 'postgres'),
-            'USER': os.getenv('DB_USER', 'postgres'),
-            'PASSWORD': os.getenv('DB_PASSWORD', ''),
-            'HOST': os.getenv('DB_HOST', ''),
-            'PORT': os.getenv('DB_PORT', '5432'),
-        }
-    }
-else:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
-    }
+if not DATABASE_URL or "supabase.com" not in DATABASE_URL:
+    DATABASE_URL = DEFAULT_SUPABASE_URL
+
+import dj_database_url
+DATABASES = {
+    'default': dj_database_url.parse(
+        DATABASE_URL,
+        conn_max_age=0,
+    )
+}
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
