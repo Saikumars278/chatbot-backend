@@ -1,4 +1,5 @@
 import os
+import json
 from datetime import timedelta
 import random
 import time
@@ -14,6 +15,7 @@ from django.contrib.auth import login as auth_login
 from django.contrib.auth import logout as auth_logout
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse
 from django.shortcuts import render, redirect
 from groq import Groq
 import razorpay
@@ -86,14 +88,20 @@ def admin_login(request):
 
 
 @csrf_exempt
-@api_view(['POST'])
 def admin_send_forgot_otp(request):
+    if request.method != "POST":
+        return JsonResponse({'success': False, 'message': 'Method not allowed'}, status=405)
+
     try:
-        data = request.data if hasattr(request, 'data') and request.data else {}
+        try:
+            data = json.loads(request.body.decode('utf-8')) if request.body else {}
+        except Exception:
+            data = request.POST
+
         email = str(data.get('email', '')).strip().lower()
 
         if not email:
-            return Response({'success': False, 'message': 'Email address is required'})
+            return JsonResponse({'success': False, 'message': 'Email address is required'})
 
         # Check if staff/superuser admin account exists with this email or username
         admin_user = User.objects.filter(email__iexact=email, is_staff=True).first() or \
@@ -102,7 +110,7 @@ def admin_send_forgot_otp(request):
                      User.objects.filter(username__iexact=email, is_superuser=True).first()
 
         if not admin_user:
-            return Response({
+            return JsonResponse({
                 'success': False,
                 'not_registered': True,
                 'message': 'Email is not registered.'
@@ -137,64 +145,76 @@ def admin_send_forgot_otp(request):
         except Exception as smtp_err:
             print("SMTP Error sending admin forgot OTP:", smtp_err)
 
-        return Response({
+        return JsonResponse({
             'success': True,
             'message': f'6-digit OTP reset code sent to {admin_user.email or email}'
         })
     except Exception as err:
         print("admin_send_forgot_otp error:", err)
-        return Response({'success': False, 'message': f'Server error: {str(err)}'})
+        return JsonResponse({'success': False, 'message': f'Server error: {str(err)}'})
 
 
 @csrf_exempt
-@api_view(['POST'])
 def admin_verify_forgot_otp(request):
+    if request.method != "POST":
+        return JsonResponse({'success': False, 'message': 'Method not allowed'}, status=405)
+
     try:
-        data = request.data if hasattr(request, 'data') and request.data else {}
+        try:
+            data = json.loads(request.body.decode('utf-8')) if request.body else {}
+        except Exception:
+            data = request.POST
+
         email = str(data.get('email', '')).strip().lower()
         user_otp = str(data.get('otp', '')).strip()
 
         if not email or not user_otp:
-            return Response({'success': False, 'message': 'Email and OTP code are required'})
+            return JsonResponse({'success': False, 'message': 'Email and OTP code are required'})
 
         session_otp = request.session.get(f'admin_forgot_otp_{email}')
         expiry_time = request.session.get(f'admin_forgot_expiry_{email}', 0)
 
         if int(time.time()) > expiry_time:
-            return Response({'success': False, 'message': 'OTP has expired. Please click Resend OTP to get a new code.'})
+            return JsonResponse({'success': False, 'message': 'OTP has expired. Please click Resend OTP to get a new code.'})
 
         if user_otp != session_otp:
-            return Response({'success': False, 'message': 'Invalid OTP code. Please check your email and try again.'})
+            return JsonResponse({'success': False, 'message': 'Invalid OTP code. Please check your email and try again.'})
 
         request.session[f'admin_forgot_verified_{email}'] = True
         request.session.modified = True
 
-        return Response({
+        return JsonResponse({
             'success': True,
             'message': 'OTP verified successfully! Set your new admin password below.'
         })
     except Exception as err:
         print("admin_verify_forgot_otp error:", err)
-        return Response({'success': False, 'message': f'Server error: {str(err)}'})
+        return JsonResponse({'success': False, 'message': f'Server error: {str(err)}'})
 
 
 @csrf_exempt
-@api_view(['POST'])
 def admin_reset_password(request):
+    if request.method != "POST":
+        return JsonResponse({'success': False, 'message': 'Method not allowed'}, status=405)
+
     try:
-        data = request.data if hasattr(request, 'data') and request.data else {}
+        try:
+            data = json.loads(request.body.decode('utf-8')) if request.body else {}
+        except Exception:
+            data = request.POST
+
         email = str(data.get('email', '')).strip().lower()
         new_password = str(data.get('newPassword', ''))
         confirm_password = str(data.get('confirmPassword', ''))
 
         if not new_password or not confirm_password:
-            return Response({'success': False, 'message': 'Password fields are required'})
+            return JsonResponse({'success': False, 'message': 'Password fields are required'})
 
         if new_password != confirm_password:
-            return Response({'success': False, 'message': 'Passwords do not match'})
+            return JsonResponse({'success': False, 'message': 'Passwords do not match'})
 
         if len(new_password) < 6:
-            return Response({'success': False, 'message': 'Password must be at least 6 characters long'})
+            return JsonResponse({'success': False, 'message': 'Password must be at least 6 characters long'})
 
         admin_user = User.objects.filter(email__iexact=email, is_staff=True).first() or \
                      User.objects.filter(username__iexact=email, is_staff=True).first() or \
@@ -202,7 +222,7 @@ def admin_reset_password(request):
                      User.objects.filter(username__iexact=email, is_superuser=True).first()
 
         if not admin_user:
-            return Response({'success': False, 'message': 'Admin account not found'})
+            return JsonResponse({'success': False, 'message': 'Admin account not found'})
 
         admin_user.set_password(new_password)
         admin_user.save()
@@ -215,13 +235,13 @@ def admin_reset_password(request):
         if f'admin_forgot_verified_{email}' in request.session:
             del request.session[f'admin_forgot_verified_{email}']
 
-        return Response({
+        return JsonResponse({
             'success': True,
             'message': 'Password reset successfully! Please log in with your new password.'
         })
     except Exception as err:
         print("admin_reset_password error:", err)
-        return Response({'success': False, 'message': f'Server error: {str(err)}'})
+        return JsonResponse({'success': False, 'message': f'Server error: {str(err)}'})
 
 
 @login_required(login_url="admin_login")
