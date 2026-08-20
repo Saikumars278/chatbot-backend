@@ -1,3 +1,4 @@
+import os
 from datetime import timedelta
 import random
 import time
@@ -18,8 +19,17 @@ import razorpay
 
 from .models import UserProfile, ChatHistory, ChatMessage, Plan, Subscription, Payment
 
-groq_client = Groq(api_key=settings.GROQ_API_KEY)
-razorpay_client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
+def get_groq_client():
+    key = getattr(settings, 'GROQ_API_KEY', None) or os.getenv('GROQ_API_KEY') or "gsk_placeholder_api_key"
+    return Groq(api_key=key)
+
+# Safe client initialization with fallback to prevent top-level import crashes on Render
+_groq_key = getattr(settings, 'GROQ_API_KEY', None) or os.getenv('GROQ_API_KEY') or "gsk_placeholder_api_key"
+groq_client = Groq(api_key=_groq_key)
+
+_rzp_id = getattr(settings, 'RAZORPAY_KEY_ID', None) or os.getenv('RAZORPAY_KEY_ID') or "rzp_test_placeholder"
+_rzp_sec = getattr(settings, 'RAZORPAY_KEY_SECRET', None) or os.getenv('RAZORPAY_KEY_SECRET') or "secret_placeholder"
+razorpay_client = razorpay.Client(auth=(_rzp_id, _rzp_sec))
 
 GUEST_CHAT_LIMIT = 5
 FREE_USER_CHAT_LIMIT = 10
@@ -814,7 +824,8 @@ def send_message(request, chat_id=None):
     bot_reply_text = ""
 
     try:
-        response = groq_client.chat.completions.create(
+        client = get_groq_client()
+        response = client.chat.completions.create(
             model=getattr(settings, "GROQ_MODEL", "groq/compound"),
             messages=[
                 {
