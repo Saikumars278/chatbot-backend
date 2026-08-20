@@ -19,6 +19,8 @@ urlpatterns = [
 
 
     path('api/signup/', signup, name='signup'),
+    path('api/send-signup-otp/', views.send_signup_otp, name='send_signup_otp'),
+    path('api/verify-signup-otp/', views.verify_signup_otp, name='verify_signup_otp'),
     path('api/login/', login, name='login'),
     path('api/logout/', logout_view, name='logout'),
     path('api/chats/', get_chats, name='get_chats'),

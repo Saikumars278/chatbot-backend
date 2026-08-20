@@ -1,60 +1,72 @@
 {% load static %}
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Admin Login</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SmartBot Admin Login</title>
   <link rel="stylesheet" href="{% static 'admin_login.css' %}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 </head>
 <body>
 
   <div class="login-page">
+    <!-- Left Showcase Section -->
     <div class="login-left">
       <div class="brand-box">
-        <div class="brand-logo">S</div>
+        <div class="brand-logo">🤖</div>
         <h1>SmartBot Admin</h1>
       </div>
 
       <h2>Manage your chatbot platform with confidence.</h2>
       <p>
-        Monitor users, chats, subscriptions, payments and business activity from one secure dashboard.
+        Monitor users, chats, subscriptions, payments and business activity from one secure administration workspace.
       </p>
 
       <div class="feature-card">
-        <span>01</span>
-        <p>Secure admin access</p>
+        <span class="feature-num">01</span>
+        <p>🔒 Secure Admin Authentication</p>
       </div>
 
       <div class="feature-card">
-        <span>02</span>
-        <p>Payment and subscription tracking</p>
+        <span class="feature-num">02</span>
+        <p>💳 Payment & Razorpay Subscription Tracking</p>
       </div>
 
       <div class="feature-card">
-        <span>03</span>
-        <p>Corporate level dashboard experience</p>
+        <span class="feature-num">03</span>
+        <p>⚡ Corporate Level Dashboard Experience</p>
       </div>
     </div>
 
+    <!-- Right Login Card Section -->
     <div class="login-right">
       <form method="POST" class="login-card">
         {% csrf_token %}
 
+        <span class="admin-badge">🔐 Enterprise Admin</span>
         <h2>Admin Login</h2>
-        <p class="sub-text">Enter your credentials to continue</p>
+        <p class="sub-text">Enter your credentials to access the dashboard</p>
 
         {% if error %}
-          <div class="error-box">{{ error }}</div>
+          <div class="error-box">⚠️ {{ error }}</div>
         {% endif %}
 
-        <label>Username</label>
-        <input type="text" name="username" placeholder="Enter username" required>
+        <div class="form-group">
+          <label>Username</label>
+          <input type="text" name="username" placeholder="Enter admin username" required autocomplete="username">
+        </div>
 
-        <label>Password</label>
-        <input type="password" name="password" placeholder="Enter password" required>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" name="password" placeholder="Enter admin password" required autocomplete="current-password">
+        </div>
 
-        <button type="submit">Login to Dashboard</button>
+        <button type="submit">Login to Dashboard →</button>
 
-        <p class="bottom-text">Protected SmartBot administration panel</p>
+        <p class="bottom-text">Protected SmartBot AI Administration Panel</p>
       </form>
     </div>
   </div>

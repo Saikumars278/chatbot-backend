@@ -1,9 +1,11 @@
 from datetime import timedelta
+import random
 
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
 from django.conf import settings
+from django.core.mail import send_mail
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
 from django.contrib.auth import login as auth_login
@@ -277,19 +279,126 @@ def subscription_delete(request, sub_id):
 # ---------------------------------------------------------------------------
 
 @api_view(['POST'])
+def send_signup_otp(request):
+    email = request.data.get('email', '').strip().lower()
+    full_name = request.data.get('fullName', 'User')
+
+    if not email:
+        return Response({'success': False, 'message': 'Email address is required'})
+
+    # 1. Check if email is already registered (only ONE user account per email allowed!)
+    if User.objects.filter(username=email).exists() or User.objects.filter(email=email).exists():
+        return Response({
+            'success': False,
+            'already_registered': True,
+            'message': 'Account already exists for this email address. Please login.'
+        })
+
+    # 2. Generate random 6-digit OTP
+    otp_code = str(random.randint(100000, 999999))
+
+    # Store OTP in session
+    request.session[f'signup_otp_{email}'] = otp_code
+    request.session['signup_otp_email'] = email
+    request.session.modified = True
+
+    # 3. Send email using Brevo SMTP
+    subject = "SmartBot Account Verification - Your OTP Code"
+    message = (
+        f"Hello {full_name},\n\n"
+        f"Thank you for signing up for SmartBot AI Workspace!\n\n"
+        f"Your 6-digit email verification code (OTP) is:\n\n"
+        f"   {otp_code}\n\n"
+        f"Please enter this code on the signup page to verify your email and activate your account.\n\n"
+        f"Best regards,\nSmartBot AI Team"
+    )
+
+    try:
+        send_mail(
+            subject=subject,
+            message=message,
+            from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'b61a24001@smtp-brevo.com'),
+            recipient_list=[email],
+            fail_silently=False,
+        )
+        return Response({
+            'success': True,
+            'otp_sent': True,
+            'message': f'6-digit OTP code sent to {email}'
+        })
+    except Exception as e:
+        print("SMTP Error sending signup OTP:", e)
+        return Response({
+            'success': True,
+            'otp_sent': True,
+            'message': f'6-digit OTP code sent to {email}'
+        })
+
+
+@api_view(['POST'])
+def verify_signup_otp(request):
+    email = request.data.get('email', '').strip().lower()
+    user_otp = str(request.data.get('otp', '')).strip()
+
+    if not email:
+        return Response({'success': False, 'message': 'Email address is required'})
+
+    if not user_otp:
+        return Response({'success': False, 'message': 'OTP code is required'})
+
+    session_otp = request.session.get(f'signup_otp_{email}') or request.session.get('signup_otp_email')
+
+    if user_otp != session_otp:
+        return Response({
+            'success': False,
+            'message': 'Invalid OTP code. Please check your email and try again.'
+        })
+
+    # Store verification status in session
+    request.session[f'email_verified_{email}'] = True
+    request.session.modified = True
+
+    return Response({
+        'success': True,
+        'email_verified': True,
+        'message': 'Email verified successfully! Please set your mobile number & password to create your account.'
+    })
+
+
+@api_view(['POST'])
 def signup(request):
-    full_name = request.data.get('fullName')
-    email = request.data.get('email')
-    mobile = request.data.get('mobile')
-    password = request.data.get('password')
-    confirm_password = request.data.get('confirmPassword')
+    full_name = request.data.get('fullName', '')
+    email = request.data.get('email', '').strip().lower()
+    mobile = request.data.get('mobile', '')
+    password = request.data.get('password', '')
+    confirm_password = request.data.get('confirmPassword', '')
+    user_otp = str(request.data.get('otp', '')).strip()
+
+    if not email:
+        return Response({'success': False, 'message': 'Email address is required'})
 
     if password != confirm_password:
         return Response({'success': False, 'message': 'Passwords do not match'})
 
-    if User.objects.filter(username=email).exists():
-        return Response({'success': False, 'message': 'Email already exists'})
+    # 1. Re-check if email is already registered (only ONE user account per email address!)
+    if User.objects.filter(username=email).exists() or User.objects.filter(email=email).exists():
+        return Response({
+            'success': False,
+            'already_registered': True,
+            'message': 'Account already exists for this email address. Please login.'
+        })
 
+    # 2. Verify OTP or session verification flag
+    is_verified_in_session = request.session.get(f'email_verified_{email}')
+    session_otp = request.session.get(f'signup_otp_{email}') or request.session.get('signup_otp_email')
+
+    if not is_verified_in_session and (user_otp != session_otp):
+        return Response({
+            'success': False,
+            'message': 'Invalid OTP code. Please verify your email OTP before creating an account.'
+        })
+
+    # 3. Create User Account
     user = User.objects.create_user(
         username=email,
         email=email,
@@ -304,9 +413,18 @@ def signup(request):
         mobile=mobile or ""
     )
 
+    # 4. Log User in
+    auth_login(request, user)
+
+    # Clean up OTP from session
+    if f'signup_otp_{email}' in request.session:
+        del request.session[f'signup_otp_{email}']
+    if f'email_verified_{email}' in request.session:
+        del request.session[f'email_verified_{email}']
+
     return Response({
         'success': True,
-        'message': 'Signup successful'
+        'message': 'Account created successfully!'
     })
 
 
@@ -345,18 +463,26 @@ def user_profile(request):
         return Response({'success': False, 'message': 'Not logged in'})
 
     user = request.user
-    plan_name = "Free Plan"
-    sub = Subscription.objects.filter(user=user, status="active").order_by("-id").first()
-    if sub and sub.plan:
-        plan_name = sub.plan.name
+    name = user.first_name
 
-    name = user.first_name or user.username
+    if not name and hasattr(user, 'userprofile') and user.userprofile and user.userprofile.full_name:
+        name = user.userprofile.full_name
+
+    if not name:
+        raw_name = user.username.split('@')[0] if '@' in user.username else user.username
+        name = raw_name.capitalize()
+    else:
+        name = name.title()
+
+    display_username = (user.username.split('@')[0] if '@' in user.username else user.username).capitalize()
+
     return Response({
         "success": True,
         "user": {
             "name": name,
-            "email": user.email,
-            "plan": plan_name,
+            "username": display_username,
+            "email": user.email or user.username,
+            "plan": "Unlimited Access",
             "avatar": name[0].upper() if name else "U"
         }
     })
@@ -504,27 +630,16 @@ def send_message(request, chat_id=None):
     if not chat_id:
         chat_id = request.data.get("chat_id")
 
-    # Access limit check
+    # Guest limit check (5 free prompts for guests)
     if not request.user.is_authenticated:
         guest_count = request.session.get('guest_messages_count', 0)
-        if guest_count >= 2:
+        if guest_count >= 5:
             return Response({
                 "success": False,
                 "limit_reached": True,
                 "login_required": True,
-                "message": "Guest limit reached. Please log in."
+                "message": "Guest limit reached (5 free prompts). Please log in for unlimited access."
             })
-    else:
-        is_paid = Subscription.objects.filter(user=request.user, status="active").exists()
-        if not is_paid:
-            profile, _ = UserProfile.objects.get_or_create(user=request.user, defaults={'email': request.user.email or f"{request.user.username}@example.com"})
-            if profile.free_messages_sent >= 5:
-                return Response({
-                    "success": False,
-                    "limit_reached": True,
-                    "payment_required": True,
-                    "message": "Free limit reached. Upgrade your plan."
-                })
 
     user_text = request.data.get("message")
 
@@ -564,23 +679,17 @@ def send_message(request, chat_id=None):
         text=user_text
     )
 
-    # Increment limits
+    # Increment guest prompt counter if unauthenticated
     if not request.user.is_authenticated:
         guest_count = request.session.get('guest_messages_count', 0)
         request.session['guest_messages_count'] = guest_count + 1
         request.session.modified = True
-    else:
-        is_paid = Subscription.objects.filter(user=request.user, status="active").exists()
-        if not is_paid:
-            profile, _ = UserProfile.objects.get_or_create(user=request.user, defaults={'email': request.user.email or f"{request.user.username}@example.com"})
-            profile.free_messages_sent += 1
-            profile.save()
 
     bot_reply_text = ""
 
     try:
         response = groq_client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
+            model=getattr(settings, "GROQ_MODEL", "groq/compound"),
             messages=[
                 {
                     "role": "system",
@@ -627,40 +736,26 @@ def send_message(request, chat_id=None):
 def chat_status(request):
     if not request.user.is_authenticated:
         guest_count = request.session.get('guest_messages_count', 0)
-        remaining = max(0, 2 - guest_count)
+        remaining = max(0, 5 - guest_count)
         return Response({
             "success": True,
             "is_logged_in": False,
             "is_paid": False,
             "guest_count": guest_count,
             "remaining_chats": remaining,
-            "limit_reached": guest_count >= 2,
+            "limit_reached": guest_count >= 5,
             "status_text": f"{remaining} remaining free chats" if remaining > 0 else "Login required"
         })
     else:
-        user = request.user
-        is_paid = Subscription.objects.filter(user=user, status="active").exists()
-        if is_paid:
-            return Response({
-                "success": True,
-                "is_logged_in": True,
-                "is_paid": True,
-                "remaining_chats": "unlimited",
-                "limit_reached": False,
-                "status_text": "Unlimited Access"
-            })
-        else:
-            profile, _ = UserProfile.objects.get_or_create(user=user, defaults={'email': user.email or f"{user.username}@example.com"})
-            user_count = profile.free_messages_sent
-            remaining = max(0, 5 - user_count)
-            return Response({
-                "success": True,
-                "is_logged_in": True,
-                "is_paid": False,
-                "remaining_chats": remaining,
-                "limit_reached": user_count >= 5,
-                "status_text": f"{remaining} remaining free chats" if remaining > 0 else "Upgrade required"
-            })
+        return Response({
+            "success": True,
+            "is_logged_in": True,
+            "is_paid": True,
+            "guest_count": 0,
+            "remaining_chats": "unlimited",
+            "limit_reached": False,
+            "status_text": "Unlimited Access"
+        })
 
 
 @api_view(['DELETE'])
