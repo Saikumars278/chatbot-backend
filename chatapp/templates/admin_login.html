@@ -203,6 +203,11 @@
         hideAlerts();
       });
 
+      function getCsrfToken() {
+        const input = document.querySelector("[name=csrfmiddlewaretoken]");
+        return input ? input.value : "";
+      }
+
       // Send OTP
       btnSendForgotOtp.addEventListener("click", async function() {
         const email = adminForgotEmail.value.trim();
@@ -219,7 +224,7 @@
         try {
           const res = await fetch("/api/admin/send-forgot-otp/", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", "X-CSRFToken": getCsrfToken() },
             body: JSON.stringify({ email: email })
           });
           const data = await res.json();
@@ -254,7 +259,7 @@
         try {
           const res = await fetch("/api/admin/send-forgot-otp/", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", "X-CSRFToken": getCsrfToken() },
             body: JSON.stringify({ email: email })
           });
           const data = await res.json();
@@ -288,7 +293,7 @@
         try {
           const res = await fetch("/api/admin/verify-forgot-otp/", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", "X-CSRFToken": getCsrfToken() },
             body: JSON.stringify({ email: email, otp: otp })
           });
           const data = await res.json();
@@ -336,7 +341,7 @@
         try {
           const res = await fetch("/api/admin/reset-password/", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", "X-CSRFToken": getCsrfToken() },
             body: JSON.stringify({
               email: email,
               newPassword: newPassword,

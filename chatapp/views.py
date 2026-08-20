@@ -13,6 +13,7 @@ from django.contrib.auth import authenticate
 from django.contrib.auth import login as auth_login
 from django.contrib.auth import logout as auth_logout
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import render, redirect
 from groq import Groq
 import razorpay
@@ -84,6 +85,7 @@ def admin_login(request):
     return render(request, "admin_login.html")
 
 
+@csrf_exempt
 @api_view(['POST'])
 def admin_send_forgot_otp(request):
     email = request.data.get('email', '').strip().lower()
@@ -142,6 +144,7 @@ def admin_send_forgot_otp(request):
         })
 
 
+@csrf_exempt
 @api_view(['POST'])
 def admin_verify_forgot_otp(request):
     email = request.data.get('email', '').strip().lower()
@@ -168,6 +171,7 @@ def admin_verify_forgot_otp(request):
     })
 
 
+@csrf_exempt
 @api_view(['POST'])
 def admin_reset_password(request):
     email = request.data.get('email', '').strip().lower()
