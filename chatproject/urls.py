@@ -17,6 +17,10 @@ urlpatterns = [
     path("admin-subscriptions/edit/<int:sub_id>/", views.subscription_edit, name="subscription_edit"),
     path("admin-subscriptions/delete/<int:sub_id>/", views.subscription_delete, name="subscription_delete"),
 
+    path('api/admin/send-forgot-otp/', views.admin_send_forgot_otp, name='admin_send_forgot_otp'),
+    path('api/admin/verify-forgot-otp/', views.admin_verify_forgot_otp, name='admin_verify_forgot_otp'),
+    path('api/admin/reset-password/', views.admin_reset_password, name='admin_reset_password'),
+
 
     path('api/signup/', signup, name='signup'),
     path('api/send-signup-otp/', views.send_signup_otp, name='send_signup_otp'),

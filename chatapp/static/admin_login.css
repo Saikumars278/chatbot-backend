@@ -174,7 +174,8 @@ body {
   text-align: left;
 }
 
-.login-card label {
+.login-card label,
+.forgot-modal-card label {
   display: block;
   margin-bottom: 7px;
   color: #cbd5e1;
@@ -183,7 +184,21 @@ body {
   letter-spacing: 0.2px;
 }
 
-.login-card input {
+.forgot-link {
+  color: #38bdf8;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.forgot-link:hover {
+  color: #60a5fa;
+  text-decoration: underline;
+}
+
+.login-card input,
+.forgot-modal-card input {
   width: 100%;
   height: 48px;
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -196,11 +211,13 @@ body {
   transition: all 0.25s ease;
 }
 
-.login-card input::placeholder {
+.login-card input::placeholder,
+.forgot-modal-card input::placeholder {
   color: #64748b;
 }
 
-.login-card input:focus {
+.login-card input:focus,
+.forgot-modal-card input:focus {
   border-color: #38bdf8;
   background: rgba(255, 255, 255, 0.08);
   box-shadow: 0 0 20px rgba(56, 189, 248, 0.25);
@@ -242,6 +259,168 @@ body {
   color: #64748b;
   font-size: 13px;
   margin: 24px 0 0;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Forgot Password Glass Modal Overlay                                        */
+/* -------------------------------------------------------------------------- */
+.forgot-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(2, 6, 23, 0.88);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.3s ease;
+}
+
+.forgot-modal-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.forgot-modal-card {
+  width: 100%;
+  max-width: 440px;
+  background: linear-gradient(135deg, #0f172a, #1e293b);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 26px;
+  padding: 36px 30px;
+  box-shadow: 0 35px 90px rgba(0, 0, 0, 0.75);
+  position: relative;
+  text-align: center;
+  transform: scale(0.94);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.forgot-modal-overlay.active .forgot-modal-card {
+  transform: scale(1);
+}
+
+.close-modal-btn {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  font-size: 15px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.close-modal-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #f87171;
+}
+
+.modal-title {
+  font-size: 24px;
+  font-weight: 800;
+  color: #ffffff;
+  margin-bottom: 6px;
+}
+
+.modal-sub {
+  font-size: 13.5px;
+  color: #94a3b8;
+  margin-bottom: 22px;
+  line-height: 1.5;
+}
+
+.modal-alert-box {
+  padding: 12px 14px;
+  border-radius: 12px;
+  font-size: 13.5px;
+  font-weight: 600;
+  margin-bottom: 18px;
+  text-align: left;
+  line-height: 1.4;
+}
+
+.modal-alert-box.error {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #f87171;
+}
+
+.modal-alert-box.success {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #34d399;
+}
+
+.modal-primary-btn {
+  width: 100%;
+  height: 48px;
+  margin-top: 8px;
+  border: none;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #2563eb, #38bdf8);
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 15px;
+  cursor: pointer;
+  box-shadow: 0 10px 28px rgba(37, 99, 235, 0.4);
+  transition: all 0.25s ease;
+}
+
+.modal-primary-btn.success {
+  background: linear-gradient(135deg, #059669, #10b981);
+  box-shadow: 0 10px 28px rgba(16, 185, 129, 0.4);
+}
+
+.modal-primary-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 36px rgba(37, 99, 235, 0.55);
+}
+
+.modal-primary-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.modal-ghost-btn {
+  flex: 1;
+  height: 42px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #cbd5e1;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.modal-ghost-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+.modal-ghost-btn.resend {
+  border-color: rgba(56, 189, 248, 0.3);
+  color: #38bdf8;
+}
+
+.modal-ghost-btn.resend:hover {
+  background: rgba(56, 189, 248, 0.15);
 }
 
 @keyframes cardFadeUp {
@@ -292,5 +471,14 @@ body {
 
   .login-card h2 {
     font-size: 24px;
+  }
+
+  .forgot-modal-card {
+    padding: 28px 20px;
+    border-radius: 20px;
+  }
+
+  .modal-title {
+    font-size: 20px;
   }
 }

@@ -55,12 +55,15 @@
         {% endif %}
 
         <div class="form-group">
-          <label>Username</label>
+          <label>Username or Admin Email</label>
           <input type="text" name="username" placeholder="Enter admin username" required autocomplete="username">
         </div>
 
         <div class="form-group">
-          <label>Password</label>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 7px;">
+            <label style="margin-bottom: 0;">Password</label>
+            <a href="#" id="openForgotModal" class="forgot-link">Forgot Password?</a>
+          </div>
           <input type="password" name="password" placeholder="Enter admin password" required autocomplete="current-password">
         </div>
 
@@ -70,6 +73,295 @@
       </form>
     </div>
   </div>
+
+  <!-- Forgot Password Glass Modal Overlay -->
+  <div class="forgot-modal-overlay" id="forgotModal">
+    <div class="forgot-modal-card">
+      <button type="button" class="close-modal-btn" id="closeForgotModal">✕</button>
+
+      <!-- Step 1: Send OTP -->
+      <div id="forgotStep1">
+        <span class="admin-badge">🔑 Reset Admin Password</span>
+        <h3 class="modal-title">Forgot Password?</h3>
+        <p class="modal-sub">Enter your registered admin email address to receive a 6-digit OTP reset code.</p>
+
+        <div id="forgotAlert1" class="modal-alert-box" style="display: none;"></div>
+
+        <div class="form-group" style="text-align: left;">
+          <label>Registered Admin Email</label>
+          <input type="email" id="adminForgotEmail" placeholder="admin@company.com" required>
+        </div>
+
+        <button type="button" class="modal-primary-btn" id="btnSendForgotOtp">Send Reset OTP →</button>
+      </div>
+
+      <!-- Step 2: Verify OTP -->
+      <div id="forgotStep2" style="display: none;">
+        <span class="admin-badge">✉️ Verify OTP Code</span>
+        <h3 class="modal-title">Enter 6-Digit OTP</h3>
+        <p class="modal-sub" id="otpSentTargetText">Check your inbox for the OTP reset code.</p>
+
+        <div id="forgotAlert2" class="modal-alert-box" style="display: none;"></div>
+
+        <div class="form-group" style="text-align: left;">
+          <label>6-Digit OTP Code</label>
+          <input type="text" id="adminForgotOtp" placeholder="123456" maxlength="6" style="letter-spacing: 4px; font-weight: 700; font-size: 18px;">
+        </div>
+
+        <button type="button" class="modal-primary-btn" id="btnVerifyForgotOtp">Verify OTP Code →</button>
+
+        <div style="display: flex; gap: 10px; margin-top: 12px;">
+          <button type="button" class="modal-ghost-btn" id="btnBackToStep1">← Change Email</button>
+          <button type="button" class="modal-ghost-btn resend" id="btnResendForgotOtp">🔄 Resend OTP</button>
+        </div>
+      </div>
+
+      <!-- Step 3: Set New Password -->
+      <div id="forgotStep3" style="display: none;">
+        <span class="admin-badge">🔒 Create New Password</span>
+        <h3 class="modal-title">Reset Password</h3>
+        <p class="modal-sub">Set your new password to restore access to the admin dashboard.</p>
+
+        <div id="forgotAlert3" class="modal-alert-box" style="display: none;"></div>
+
+        <div class="form-group" style="text-align: left;">
+          <label>New Password</label>
+          <input type="password" id="adminNewPassword" placeholder="••••••••" required>
+        </div>
+
+        <div class="form-group" style="text-align: left;">
+          <label>Confirm New Password</label>
+          <input type="password" id="adminConfirmPassword" placeholder="••••••••" required>
+        </div>
+
+        <button type="button" class="modal-primary-btn success" id="btnResetPassword">Reset Password & Login →</button>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      const openForgotModal = document.getElementById("openForgotModal");
+      const closeForgotModal = document.getElementById("closeForgotModal");
+      const forgotModal = document.getElementById("forgotModal");
+
+      const forgotStep1 = document.getElementById("forgotStep1");
+      const forgotStep2 = document.getElementById("forgotStep2");
+      const forgotStep3 = document.getElementById("forgotStep3");
+
+      const forgotAlert1 = document.getElementById("forgotAlert1");
+      const forgotAlert2 = document.getElementById("forgotAlert2");
+      const forgotAlert3 = document.getElementById("forgotAlert3");
+
+      const adminForgotEmail = document.getElementById("adminForgotEmail");
+      const adminForgotOtp = document.getElementById("adminForgotOtp");
+      const adminNewPassword = document.getElementById("adminNewPassword");
+      const adminConfirmPassword = document.getElementById("adminConfirmPassword");
+
+      const btnSendForgotOtp = document.getElementById("btnSendForgotOtp");
+      const btnVerifyForgotOtp = document.getElementById("btnVerifyForgotOtp");
+      const btnResetPassword = document.getElementById("btnResetPassword");
+      const btnBackToStep1 = document.getElementById("btnBackToStep1");
+      const btnResendForgotOtp = document.getElementById("btnResendForgotOtp");
+      const otpSentTargetText = document.getElementById("otpSentTargetText");
+
+      function showAlert(el, msg, type) {
+        el.style.display = "block";
+        el.className = "modal-alert-box " + type;
+        el.innerHTML = (type === "error" ? "⚠️ " : "✓ ") + msg;
+      }
+
+      function hideAlerts() {
+        forgotAlert1.style.display = "none";
+        forgotAlert2.style.display = "none";
+        forgotAlert3.style.display = "none";
+      }
+
+      openForgotModal.addEventListener("click", function(e) {
+        e.preventDefault();
+        forgotModal.classList.add("active");
+        hideAlerts();
+        forgotStep1.style.display = "block";
+        forgotStep2.style.display = "none";
+        forgotStep3.style.display = "none";
+      });
+
+      closeForgotModal.addEventListener("click", function() {
+        forgotModal.classList.remove("active");
+      });
+
+      forgotModal.addEventListener("click", function(e) {
+        if (e.target === forgotModal) {
+          forgotModal.classList.remove("active");
+        }
+      });
+
+      btnBackToStep1.addEventListener("click", function() {
+        forgotStep1.style.display = "block";
+        forgotStep2.style.display = "none";
+        hideAlerts();
+      });
+
+      // Send OTP
+      btnSendForgotOtp.addEventListener("click", async function() {
+        const email = adminForgotEmail.value.trim();
+        hideAlerts();
+
+        if (!email) {
+          showAlert(forgotAlert1, "Please enter your registered admin email.", "error");
+          return;
+        }
+
+        btnSendForgotOtp.disabled = true;
+        btnSendForgotOtp.innerText = "Sending OTP...";
+
+        try {
+          const res = await fetch("/api/admin/send-forgot-otp/", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: email })
+          });
+          const data = await res.json();
+
+          if (data.success) {
+            otpSentTargetText.innerText = "Check your email (" + email + ") for the 6-digit OTP reset code.";
+            forgotStep1.style.display = "none";
+            forgotStep2.style.display = "block";
+            showAlert(forgotAlert2, data.message || "OTP code sent to email.", "success");
+          } else {
+            if (data.not_registered) {
+              showAlert(forgotAlert1, "Email is not registered.", "error");
+            } else {
+              showAlert(forgotAlert1, data.message || "Failed to send OTP code.", "error");
+            }
+          }
+        } catch (err) {
+          showAlert(forgotAlert1, "Failed to connect to server. Please try again.", "error");
+        } finally {
+          btnSendForgotOtp.disabled = false;
+          btnSendForgotOtp.innerText = "Send Reset OTP →";
+        }
+      });
+
+      // Resend OTP
+      btnResendForgotOtp.addEventListener("click", async function() {
+        const email = adminForgotEmail.value.trim();
+        hideAlerts();
+        btnResendForgotOtp.disabled = true;
+        btnResendForgotOtp.innerText = "Resending...";
+
+        try {
+          const res = await fetch("/api/admin/send-forgot-otp/", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: email })
+          });
+          const data = await res.json();
+          if (data.success) {
+            showAlert(forgotAlert2, "New OTP code sent to " + email, "success");
+          } else {
+            showAlert(forgotAlert2, data.message || "Failed to resend OTP.", "error");
+          }
+        } catch (err) {
+          showAlert(forgotAlert2, "Failed to resend OTP.", "error");
+        } finally {
+          btnResendForgotOtp.disabled = false;
+          btnResendForgotOtp.innerText = "🔄 Resend OTP";
+        }
+      });
+
+      // Verify OTP
+      btnVerifyForgotOtp.addEventListener("click", async function() {
+        const email = adminForgotEmail.value.trim();
+        const otp = adminForgotOtp.value.trim();
+        hideAlerts();
+
+        if (!otp || otp.length < 6) {
+          showAlert(forgotAlert2, "Please enter the 6-digit OTP code.", "error");
+          return;
+        }
+
+        btnVerifyForgotOtp.disabled = true;
+        btnVerifyForgotOtp.innerText = "Verifying...";
+
+        try {
+          const res = await fetch("/api/admin/verify-forgot-otp/", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: email, otp: otp })
+          });
+          const data = await res.json();
+
+          if (data.success) {
+            forgotStep2.style.display = "none";
+            forgotStep3.style.display = "block";
+            showAlert(forgotAlert3, "OTP verified! Please set your new password.", "success");
+          } else {
+            showAlert(forgotAlert2, data.message || "Invalid OTP code.", "error");
+          }
+        } catch (err) {
+          showAlert(forgotAlert2, "Verification failed. Please try again.", "error");
+        } finally {
+          btnVerifyForgotOtp.disabled = false;
+          btnVerifyForgotOtp.innerText = "Verify OTP Code →";
+        }
+      });
+
+      // Reset Password
+      btnResetPassword.addEventListener("click", async function() {
+        const email = adminForgotEmail.value.trim();
+        const newPassword = adminNewPassword.value;
+        const confirmPassword = adminConfirmPassword.value;
+        hideAlerts();
+
+        if (!newPassword || !confirmPassword) {
+          showAlert(forgotAlert3, "Please fill out both password fields.", "error");
+          return;
+        }
+
+        if (newPassword !== confirmPassword) {
+          showAlert(forgotAlert3, "Passwords do not match.", "error");
+          return;
+        }
+
+        if (newPassword.length < 6) {
+          showAlert(forgotAlert3, "Password must be at least 6 characters long.", "error");
+          return;
+        }
+
+        btnResetPassword.disabled = true;
+        btnResetPassword.innerText = "Resetting Password...";
+
+        try {
+          const res = await fetch("/api/admin/reset-password/", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email: email,
+              newPassword: newPassword,
+              confirmPassword: confirmPassword
+            })
+          });
+          const data = await res.json();
+
+          if (data.success) {
+            showAlert(forgotAlert3, "Password reset successfully! Please log in.", "success");
+            setTimeout(function() {
+              forgotModal.classList.remove("active");
+            }, 1800);
+          } else {
+            showAlert(forgotAlert3, data.message || "Failed to reset password.", "error");
+          }
+        } catch (err) {
+          showAlert(forgotAlert3, "Failed to reset password. Please try again.", "error");
+        } finally {
+          btnResetPassword.disabled = false;
+          btnResetPassword.innerText = "Reset Password & Login →";
+        }
+      });
+    });
+  </script>
 
 </body>
 </html>
