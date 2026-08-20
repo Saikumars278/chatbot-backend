@@ -52,16 +52,26 @@ def ensure_admin_users():
             u1.set_password("admin123")
             u1.save()
 
-        # Guarantee 's.saikumar9623@gmail.com' superuser exists with password 'admin123'
-        email_username = "s.saikumar9623@gmail.com"
-        u2 = User.objects.filter(username=email_username).first() or User.objects.filter(email=email_username).first()
+        # Guarantee 'saikumar' superuser exists with password 'admin123'
+        u2 = User.objects.filter(username="saikumar").first()
         if not u2:
-            User.objects.create_superuser(email_username, email_username, "admin123")
+            User.objects.create_superuser("saikumar", "s.sai@gmail.com", "admin123")
         else:
             u2.is_superuser = True
             u2.is_staff = True
             u2.set_password("admin123")
             u2.save()
+
+        # Guarantee 's.saikumar9623@gmail.com' superuser exists with password 'admin123'
+        email_username = "s.saikumar9623@gmail.com"
+        u3 = User.objects.filter(username=email_username).first() or User.objects.filter(email=email_username).first()
+        if not u3:
+            User.objects.create_superuser(email_username, email_username, "admin123")
+        else:
+            u3.is_superuser = True
+            u3.is_staff = True
+            u3.set_password("admin123")
+            u3.save()
     except Exception as e:
         print("ensure_admin_users error:", e)
 
