@@ -9,6 +9,7 @@ from rest_framework.response import Response
 
 from django.conf import settings
 from django.core.mail import send_mail
+from django.db.models import Q
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
 from django.contrib.auth import login as auth_login
@@ -21,6 +22,7 @@ from groq import Groq
 import razorpay
 
 from .models import UserProfile, ChatHistory, ChatMessage, Plan, Subscription, Payment
+from .utils import send_brevo_email
 
 def get_groq_client():
     key = getattr(settings, 'GROQ_API_KEY', None) or os.getenv('GROQ_API_KEY') or "gsk_placeholder_api_key"
@@ -104,10 +106,10 @@ def admin_send_forgot_otp(request):
             return JsonResponse({'success': False, 'message': 'Email address is required'})
 
         # Check if staff/superuser admin account exists with this email or username
-        admin_user = User.objects.filter(email__iexact=email, is_staff=True).first() or \
-                     User.objects.filter(username__iexact=email, is_staff=True).first() or \
-                     User.objects.filter(email__iexact=email, is_superuser=True).first() or \
-                     User.objects.filter(username__iexact=email, is_superuser=True).first()
+        admin_user = User.objects.filter(
+            Q(email__iexact=email) | Q(username__iexact=email),
+            Q(is_staff=True) | Q(is_superuser=True)
+        ).first()
 
         if not admin_user:
             return JsonResponse({
@@ -115,6 +117,8 @@ def admin_send_forgot_otp(request):
                 'not_registered': True,
                 'message': 'Email is not registered.'
             })
+
+        target_email = admin_user.email if admin_user.email else email
 
         # Generate 6-digit OTP code and set 10-min expiration
         otp_code = str(random.randint(100000, 999999))
@@ -124,7 +128,7 @@ def admin_send_forgot_otp(request):
         request.session[f'admin_forgot_expiry_{email}'] = expiry_time
         request.session.modified = True
 
-        # Send Email via Brevo SMTP
+        # Send Email via Brevo REST API
         subject = "SmartBot Admin Password Reset - OTP Code"
         message = (
             f"Hello {admin_user.first_name or admin_user.username},\n\n"
@@ -134,20 +138,22 @@ def admin_send_forgot_otp(request):
             f"Best regards,\nSmartBot Security Team"
         )
 
-        try:
-            send_mail(
-                subject=subject,
-                message=message,
-                from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'b61a24001@smtp-brevo.com'),
-                recipient_list=[admin_user.email or email],
-                fail_silently=False,
-            )
-        except Exception as smtp_err:
-            print("SMTP Error sending admin forgot OTP:", smtp_err)
+        ok, send_msg = send_brevo_email(
+            to_email=target_email,
+            subject=subject,
+            text_content=message,
+            recipient_name=admin_user.first_name or admin_user.username
+        )
+
+        if not ok:
+            return JsonResponse({
+                'success': False,
+                'message': f'Failed to send OTP email: {send_msg}'
+            })
 
         return JsonResponse({
             'success': True,
-            'message': f'6-digit OTP reset code sent to {admin_user.email or email}'
+            'message': f'6-digit OTP reset code sent to {target_email}'
         })
     except Exception as err:
         print("admin_send_forgot_otp error:", err)
@@ -216,10 +222,10 @@ def admin_reset_password(request):
         if len(new_password) < 6:
             return JsonResponse({'success': False, 'message': 'Password must be at least 6 characters long'})
 
-        admin_user = User.objects.filter(email__iexact=email, is_staff=True).first() or \
-                     User.objects.filter(username__iexact=email, is_staff=True).first() or \
-                     User.objects.filter(email__iexact=email, is_superuser=True).first() or \
-                     User.objects.filter(username__iexact=email, is_superuser=True).first()
+        admin_user = User.objects.filter(
+            Q(email__iexact=email) | Q(username__iexact=email),
+            Q(is_staff=True) | Q(is_superuser=True)
+        ).first()
 
         if not admin_user:
             return JsonResponse({'success': False, 'message': 'Admin account not found'})
@@ -505,26 +511,17 @@ def send_signup_otp(request):
         f"Best regards,\nSmartBot AI Team"
     )
 
-    try:
-        send_mail(
-            subject=subject,
-            message=message,
-            from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'b61a24001@smtp-brevo.com'),
-            recipient_list=[email],
-            fail_silently=False,
-        )
-        return Response({
-            'success': True,
-            'otp_sent': True,
-            'message': f'6-digit OTP code sent to {email}'
-        })
-    except Exception as e:
-        print("SMTP Error sending signup OTP:", e)
-        return Response({
-            'success': True,
-            'otp_sent': True,
-            'message': f'6-digit OTP code sent to {email}'
-        })
+    ok, send_msg = send_brevo_email(
+        to_email=email,
+        subject=subject,
+        text_content=message,
+        recipient_name=full_name
+    )
+    return Response({
+        'success': True,
+        'otp_sent': True,
+        'message': f'6-digit OTP code sent to {email}'
+    })
 
 
 @api_view(['POST'])
