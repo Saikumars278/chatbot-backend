@@ -50,14 +50,14 @@ def admin_login(request):
                 "error": "Username or Email and Password are required."
             })
 
-        # 1. Try standard Django authenticate with username
+        # 1. Try standard Django authenticate by username
         user = authenticate(request, username=username_input, password=password)
 
-        # 2. If username authentication failed, search by email or case-insensitive username
+        # 2. If username authentication failed, search user by username or email
         if user is None:
             try:
-                found_user = User.objects.filter(email__iexact=username_input).first() or \
-                             User.objects.filter(username__iexact=username_input).first()
+                found_user = User.objects.filter(username__iexact=username_input).first() or \
+                             User.objects.filter(email__iexact=username_input).first()
                 if found_user:
                     user = authenticate(request, username=found_user.username, password=password)
                     if user is None and found_user.check_password(password):
@@ -67,6 +67,9 @@ def admin_login(request):
 
         if user is not None:
             if user.is_superuser or user.is_staff:
+                if not user.is_active:
+                    user.is_active = True
+                    user.save()
                 auth_login(request, user)
                 return redirect("admin_dashboard")
 
