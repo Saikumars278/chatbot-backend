@@ -9,7 +9,8 @@ def send_brevo_email(to_email, subject, text_content, html_content=None, recipie
     Uses BREVO_API_KEY and BREVO_SENDER_EMAIL from Django settings or environment variables.
     """
     api_key = getattr(settings, 'BREVO_API_KEY', None) or os.getenv('BREVO_API_KEY', '') or os.getenv('BREVO_SMTP_PASSWORD', '')
-    sender_raw = getattr(settings, 'BREVO_SENDER_EMAIL', None) or os.getenv('BREVO_SENDER_EMAIL', '') or getattr(settings, 'DEFAULT_FROM_EMAIL', 'b61a24001@smtp-brevo.com')
+    # Primary sender is DEFAULT_FROM_EMAIL (or BREVO_SENDER_EMAIL fallback)
+    sender_raw = getattr(settings, 'DEFAULT_FROM_EMAIL', None) or os.getenv('DEFAULT_FROM_EMAIL', '') or getattr(settings, 'BREVO_SENDER_EMAIL', None) or os.getenv('BREVO_SENDER_EMAIL', '') or 'b61a24001@smtp-brevo.com'
 
     # Parse clean email address out of sender_raw (e.g. "SmartBot Workspace <b61a24001@smtp-brevo.com>")
     match = re.search(r'<([^>]+)>', sender_raw)
