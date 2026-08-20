@@ -40,60 +40,28 @@ GUEST_SESSION_KEY = "guest_chat_ids"
 # Admin (session-based, server-rendered) views
 # ---------------------------------------------------------------------------
 
-def ensure_admin_users():
-    try:
-        # Guarantee 'admin' superuser exists with password 'admin123'
-        u1 = User.objects.filter(username="admin").first()
-        if not u1:
-            User.objects.create_superuser("admin", "b61a24001@smtp-brevo.com", "admin123")
-        else:
-            u1.is_superuser = True
-            u1.is_staff = True
-            u1.set_password("admin123")
-            u1.save()
-
-        # Guarantee 'saikumar' superuser exists with password 'admin123'
-        u2 = User.objects.filter(username="saikumar").first()
-        if not u2:
-            User.objects.create_superuser("saikumar", "s.sai@gmail.com", "admin123")
-        else:
-            u2.is_superuser = True
-            u2.is_staff = True
-            u2.set_password("admin123")
-            u2.save()
-
-        # Guarantee 's.saikumar9623@gmail.com' superuser exists with password 'admin123'
-        email_username = "s.saikumar9623@gmail.com"
-        u3 = User.objects.filter(username=email_username).first() or User.objects.filter(email=email_username).first()
-        if not u3:
-            User.objects.create_superuser(email_username, email_username, "admin123")
-        else:
-            u3.is_superuser = True
-            u3.is_staff = True
-            u3.set_password("admin123")
-            u3.save()
-    except Exception as e:
-        print("ensure_admin_users error:", e)
-
-
 def admin_login(request):
-    ensure_admin_users()
-
     if request.method == "POST":
         username_input = request.POST.get("username", "").strip()
         password = request.POST.get("password", "")
 
+        if not username_input or not password:
+            return render(request, "admin_login.html", {
+                "error": "Username or Email and Password are required."
+            })
+
+        # 1. Try standard Django authenticate with username
         user = authenticate(request, username=username_input, password=password)
 
+        # 2. If username authentication failed, search by email or case-insensitive username
         if user is None:
             try:
-                found_user = User.objects.filter(username__iexact=username_input).first() or \
-                             User.objects.filter(email__iexact=username_input).first()
+                found_user = User.objects.filter(email__iexact=username_input).first() or \
+                             User.objects.filter(username__iexact=username_input).first()
                 if found_user:
-                    if found_user.check_password(password):
+                    user = authenticate(request, username=found_user.username, password=password)
+                    if user is None and found_user.check_password(password):
                         user = found_user
-                    else:
-                        user = authenticate(request, username=found_user.username, password=password)
             except Exception as e:
                 print("admin_login lookup error:", e)
 

@@ -84,12 +84,13 @@ TEMPLATES = [
 WSGI_APPLICATION = 'chatproject.wsgi.application'
 
 # Database (Supabase PostgreSQL with fallback)
-if os.getenv("DATABASE_URL"):
+DATABASE_URL = os.getenv("DATABASE_URL")
+if DATABASE_URL:
     import dj_database_url
     DATABASES = {
         'default': dj_database_url.config(
-            default=os.getenv("DATABASE_URL"),
-            conn_max_age=600,
+            default=DATABASE_URL,
+            conn_max_age=0,
             conn_health_checks=True,
         )
     }
