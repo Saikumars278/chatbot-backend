@@ -895,35 +895,47 @@ def send_message(request, chat_id=None):
         if m and m not in unique_models:
             unique_models.append(m)
 
-    client = get_groq_client()
+    keys_to_try = []
+    env_key = getattr(settings, 'GROQ_API_KEY', None) or os.getenv('GROQ_API_KEY')
+    if env_key and "placeholder" not in env_key.lower() and len(env_key) >= 20:
+        keys_to_try.append(env_key)
+    if _DEFAULT_GROQ_API_KEY not in keys_to_try:
+        keys_to_try.append(_DEFAULT_GROQ_API_KEY)
 
     last_err = "No models attempted"
-    for model_name in unique_models:
+    for current_key in keys_to_try:
         try:
-            response = client.chat.completions.create(
-                model=model_name,
-                messages=[
-                    {
-                        "role": "system",
-                        "content": "You are SmartBot, a friendly and helpful AI assistant."
-                    },
-                    {
-                        "role": "user",
-                        "content": user_text
-                    }
-                ],
-                temperature=0.7,
-                max_tokens=1024
-            )
-            bot_reply_text = response.choices[0].message.content
+            client = Groq(api_key=current_key)
+            for model_name in unique_models:
+                try:
+                    response = client.chat.completions.create(
+                        model=model_name,
+                        messages=[
+                            {
+                                "role": "system",
+                                "content": "You are SmartBot, a friendly and helpful AI assistant."
+                            },
+                            {
+                                "role": "user",
+                                "content": user_text
+                            }
+                        ],
+                        temperature=0.7,
+                        max_tokens=1024
+                    )
+                    bot_reply_text = response.choices[0].message.content
+                    if bot_reply_text:
+                        break
+                except Exception as e:
+                    last_err = f"{type(e).__name__}: {str(e)}"
+                    try:
+                        print(f"Groq Error with model {model_name}: {last_err}")
+                    except Exception:
+                        pass
             if bot_reply_text:
                 break
-        except Exception as e:
-            last_err = f"{type(e).__name__}: {str(e)}"
-            try:
-                print(f"Groq Error with model {model_name}: {last_err}")
-            except Exception:
-                pass
+        except Exception as ke:
+            last_err = f"KeyError: {str(ke)}"
 
     if not bot_reply_text:
         bot_reply_text = f"Sorry, I couldn't generate a response. ({last_err})"
