@@ -897,6 +897,7 @@ def send_message(request, chat_id=None):
 
     client = get_groq_client()
 
+    last_err = "No models attempted"
     for model_name in unique_models:
         try:
             response = client.chat.completions.create(
@@ -918,10 +919,14 @@ def send_message(request, chat_id=None):
             if bot_reply_text:
                 break
         except Exception as e:
-            print(f"Groq Error with model {model_name}:", str(e))
+            last_err = f"{type(e).__name__}: {str(e)}"
+            try:
+                print(f"Groq Error with model {model_name}: {last_err}")
+            except Exception:
+                pass
 
     if not bot_reply_text:
-        bot_reply_text = "Sorry, I couldn't generate a response."
+        bot_reply_text = f"Sorry, I couldn't generate a response. ({last_err})"
 
     # Save bot reply
     bot_message = ChatMessage.objects.create(
