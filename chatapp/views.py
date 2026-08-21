@@ -28,11 +28,15 @@ import base64
 _DEFAULT_GROQ_API_KEY = base64.b64decode("Z3NrX2V0ODczNTRDUFhRS0paRFk2MmdmV0dkeWIwRllRTXZ1SEtqQ0pEaGtIdW1vSlA3cWF1aEU=").decode("utf-8")
 
 def get_groq_client():
-    key = getattr(settings, 'GROQ_API_KEY', None) or os.getenv('GROQ_API_KEY') or _DEFAULT_GROQ_API_KEY
+    key = getattr(settings, 'GROQ_API_KEY', None) or os.getenv('GROQ_API_KEY') or ""
+    if not key or "placeholder" in key.lower() or len(key) < 20:
+        key = _DEFAULT_GROQ_API_KEY
     return Groq(api_key=key)
 
 # Safe client initialization with fallback to prevent top-level import crashes on Render
-_groq_key = getattr(settings, 'GROQ_API_KEY', None) or os.getenv('GROQ_API_KEY') or _DEFAULT_GROQ_API_KEY
+_groq_key = getattr(settings, 'GROQ_API_KEY', None) or os.getenv('GROQ_API_KEY') or ""
+if not _groq_key or "placeholder" in _groq_key.lower() or len(_groq_key) < 20:
+    _groq_key = _DEFAULT_GROQ_API_KEY
 groq_client = Groq(api_key=_groq_key)
 
 _rzp_id = getattr(settings, 'RAZORPAY_KEY_ID', None) or os.getenv('RAZORPAY_KEY_ID') or "rzp_test_placeholder"
