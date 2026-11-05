@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SmartBot Platform Admin Dashboard</title>
+  <title>SmartBot Platform - Admin Dashboard</title>
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -22,21 +22,21 @@
       <header class="topbar">
         <div class="topbar-left">
           <h1>SmartBot Platform</h1>
-          <p>Corporate Administrator Hub</p>
+          <p>Corporate Administrator Hub & Financial Overview</p>
         </div>
 
         <div class="admin-profile">
           <div class="avatar">A</div>
           <div class="profile-info">
             <h4>Administrator</h4>
-            <p>Super User</p>
+            <p>Super User · Online</p>
           </div>
         </div>
       </header>
 
-      <!-- Four Summary Cards -->
+      <!-- Four Summary Metric Cards -->
       <section class="stats-grid">
-        <!-- Total Users Card -->
+        <!-- 1. Total Users Card -->
         <div class="stat-card">
           <div class="stat-header">
             <span class="stat-title">Total Users</span>
@@ -49,20 +49,68 @@
           <div class="stat-number">{{ users_count }}</div>
           <div class="stat-footer text-success">
             <span class="trend-icon">↑</span>
-            <span>Platform growth active</span>
+            <span>Registered member accounts</span>
           </div>
         </div>
 
+        <!-- 2. Total Revenue Card -->
+        <div class="stat-card">
+          <div class="stat-header">
+            <span class="stat-title">Total Revenue</span>
+            <div class="stat-icon-wrapper revenue-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="card-icon">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+              </svg>
+            </div>
+          </div>
+          <div class="stat-number">{{ total_revenue_fmt }}</div>
+          <div class="stat-footer text-success">
+            <span class="trend-icon">✓</span>
+            <span>Verified Razorpay earnings</span>
+          </div>
+        </div>
+
+        <!-- 3. Total Paid Users Card -->
+        <div class="stat-card">
+          <div class="stat-header">
+            <span class="stat-title">Total Paid Users</span>
+            <div class="stat-icon-wrapper paid-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="card-icon">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 0 1-1.043 3.296 3.745 3.745 0 0 1-3.296 1.043A3.745 3.745 0 0 1 12 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 0 1-3.296-1.043 3.745 3.745 0 0 1-1.043-3.296A3.745 3.745 0 0 1 3 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 0 1 1.043-3.296 3.746 3.746 0 0 1 3.296-1.043A3.746 3.746 0 0 1 12 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 0 1 3.296 1.043 3.746 3.746 0 0 1 1.043 3.296A3.745 3.745 0 0 1 21 12Z" />
+              </svg>
+            </div>
+          </div>
+          <div class="stat-number">{{ total_paid_users }}</div>
+          <div class="stat-footer text-info">
+            <span class="trend-icon">★</span>
+            <span>Unlocked Unlimited Access</span>
+          </div>
+        </div>
+
+        <!-- 4. Total Pending/Failed Payments Card -->
+        <div class="stat-card">
+          <div class="stat-header">
+            <span class="stat-title">Pending / Failed</span>
+            <div class="stat-icon-wrapper alert-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="card-icon">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
+              </svg>
+            </div>
+          </div>
+          <div class="stat-number">{{ total_pending_failed }}</div>
+          <div class="stat-footer text-warning">
+            <span class="trend-icon">!</span>
+            <span>Unfinished or created orders</span>
+          </div>
+        </div>
       </section>
 
-      <!-- Tables Sections -->
-
-      <!-- Recent Users Table -->
+      <!-- 1. Recent Users Table (with Plan / Payment Status column) -->
       <section class="table-card" id="users">
         <div class="table-header">
           <div>
             <h2>Recent Users</h2>
-            <p class="table-sub">Newest member accounts registered on SmartBot</p>
+            <p class="table-sub">Newest member accounts and instant plan / payment status</p>
           </div>
           <span class="badge-total">Latest 10 Accounts</span>
         </div>
@@ -73,6 +121,7 @@
               <tr>
                 <th>Name</th>
                 <th>Email</th>
+                <th>Plan / Payment Status</th>
                 <th>Joined Date</th>
                 <th>Expiry Date</th>
               </tr>
@@ -82,6 +131,16 @@
               <tr>
                 <td class="font-semibold">{{ user.name }}</td>
                 <td class="text-muted">{{ user.email }}</td>
+                <td>
+                  {% if user.is_paid %}
+                    <span class="badge-status-paid">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                      {% if user.paid_amount %}₹{{ user.paid_amount }} Paid • Unlimited{% else %}₹299 Paid • Unlimited{% endif %}
+                    </span>
+                  {% else %}
+                    <span class="badge-status-unpaid">Free Plan • Not Paid</span>
+                  {% endif %}
+                </td>
                 <td>{{ user.joined_date }}</td>
                 <td>
                   {% if user.expiry_date != "N/A" %}
@@ -93,7 +152,133 @@
               </tr>
               {% empty %}
               <tr>
-                <td colspan="4" class="text-center text-muted py-8">No users found</td>
+                <td colspan="5" class="text-center text-muted py-8">No users found</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 2. Payment Details Section (Full Table with Search, Filters & Sorting) -->
+      <section class="table-card" id="payment-details-section" style="margin-top: 36px;">
+        <div class="table-header" style="flex-wrap: wrap; gap: 16px;">
+          <div>
+            <h2>Payment Details</h2>
+            <p class="table-sub">Razorpay transaction verification, order IDs, payment status and subscription dates</p>
+          </div>
+
+          <!-- Search, Filter, Sort Controls -->
+          <form method="GET" class="filter-form" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+            <!-- Search by user/email -->
+            <div class="filter-group">
+              <input
+                type="text"
+                name="q"
+                class="form-input search-input"
+                placeholder="Search user, email, order ID..."
+                value="{{ search_q }}"
+                style="width: 200px; padding: 7px 12px; font-size: 13px;"
+              >
+            </div>
+
+            <!-- Filter by payment status -->
+            <div class="filter-group">
+              <select name="status" class="form-select" onchange="this.form.submit()" style="padding: 7px 12px; font-size: 13px;">
+                <option value="">All Statuses</option>
+                <option value="paid" {% if selected_status == 'paid' %}selected{% endif %}>Paid</option>
+                <option value="failed" {% if selected_status == 'failed' %}selected{% endif %}>Failed</option>
+                <option value="pending" {% if selected_status == 'pending' or selected_status == 'created' %}selected{% endif %}>Pending / Created</option>
+              </select>
+            </div>
+
+            <!-- Filter by plan -->
+            <div class="filter-group">
+              <select name="plan" class="form-select" onchange="this.form.submit()" style="padding: 7px 12px; font-size: 13px;">
+                <option value="">All Plans</option>
+                {% for plan_opt in available_plans %}
+                  <option value="{{ plan_opt }}" {% if selected_plan == plan_opt %}selected{% endif %}>{{ plan_opt }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <!-- Sort by payment date -->
+            <div class="filter-group">
+              <select name="sort" class="form-select" onchange="this.form.submit()" style="padding: 7px 12px; font-size: 13px;">
+                <option value="newest" {% if selected_sort == 'newest' %}selected{% endif %}>Date: Newest First</option>
+                <option value="oldest" {% if selected_sort == 'oldest' %}selected{% endif %}>Date: Oldest First</option>
+              </select>
+            </div>
+
+            <button type="submit" class="btn-primary" style="padding: 7px 16px; font-size: 13px; border-radius: 8px;">Filter</button>
+
+            {% if search_q or selected_status or selected_plan or selected_sort != 'newest' %}
+              <a href="/admin-dashboard/#payment-details-section" class="btn-secondary" style="padding: 7px 14px; font-size: 13px; border-radius: 8px;">Clear</a>
+            {% endif %}
+          </form>
+        </div>
+
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>User Name</th>
+                <th>Email</th>
+                <th>Plan Name</th>
+                <th>Amount (₹)</th>
+                <th>Razorpay Order ID</th>
+                <th>Razorpay Payment ID</th>
+                <th>Payment Status</th>
+                <th>Payment Date</th>
+                <th>Sub Start</th>
+                <th>Sub Expiry</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for p in payments %}
+              <tr>
+                <td class="font-semibold">{{ p.user_name }}</td>
+                <td class="text-muted">{{ p.email }}</td>
+                <td>
+                  <span class="plan-pill">{{ p.plan_name }}</span>
+                </td>
+                <td class="amount-val font-semibold">{{ p.amount }}</td>
+                <td>
+                  <span class="font-mono text-xs text-muted">{{ p.razorpay_order_id }}</span>
+                </td>
+                <td>
+                  <span class="font-mono text-xs text-muted">{{ p.razorpay_payment_id }}</span>
+                </td>
+                <td>
+                  {% if p.status == 'Paid' %}
+                    <span class="status-badge paid">Paid</span>
+                  {% elif p.status == 'Failed' %}
+                    <span class="status-badge failed">Failed</span>
+                  {% else %}
+                    <span class="status-badge pending">Pending</span>
+                  {% endif %}
+                </td>
+                <td class="text-sm">{{ p.payment_date }}</td>
+                <td class="text-sm">{{ p.sub_start_date }}</td>
+                <td class="text-sm">
+                  {% if p.sub_expiry_date != 'N/A' %}
+                    <span class="status-date">{{ p.sub_expiry_date }}</span>
+                  {% else %}
+                    <span class="text-muted">N/A</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if p.is_active %}
+                    <span class="active-badge active">● Active</span>
+                  {% else %}
+                    <span class="active-badge inactive">○ Inactive</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="11" class="text-center text-muted py-8">No payment records found</td>
               </tr>
               {% endfor %}
             </tbody>

@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SmartBot - Manage Users</title>
+  <title>SmartBot Platform - Manage Users</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -21,14 +21,14 @@
       <header class="topbar">
         <div class="topbar-left">
           <h1>Registered Users</h1>
-          <p>Complete directory of user accounts</p>
+          <p>Complete directory of user accounts and plan statuses</p>
         </div>
 
         <div class="admin-profile">
           <div class="avatar">A</div>
           <div class="profile-info">
             <h4>Administrator</h4>
-            <p>Super User</p>
+            <p>Super User · Online</p>
           </div>
         </div>
       </header>
@@ -38,7 +38,7 @@
         <div class="table-header">
           <div>
             <h2>Users Directory</h2>
-            <p class="table-sub">Registered accounts and current plan durations</p>
+            <p class="table-sub">Registered accounts and instant payment / subscription status</p>
           </div>
         </div>
 
@@ -48,6 +48,7 @@
               <tr>
                 <th>Name</th>
                 <th>Email</th>
+                <th>Plan / Payment Status</th>
                 <th>Joined Date</th>
                 <th>Expiry Date</th>
               </tr>
@@ -57,6 +58,16 @@
               <tr>
                 <td class="font-semibold">{{ user.name }}</td>
                 <td class="text-muted">{{ user.email }}</td>
+                <td>
+                  {% if user.is_paid %}
+                    <span class="badge-status-paid">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                      {% if user.paid_amount %}₹{{ user.paid_amount }} Paid • Unlimited{% else %}₹299 Paid • Unlimited{% endif %}
+                    </span>
+                  {% else %}
+                    <span class="badge-status-unpaid">Free Plan • Not Paid</span>
+                  {% endif %}
+                </td>
                 <td>{{ user.joined_date }}</td>
                 <td>
                   {% if user.expiry_date != "N/A" %}
@@ -68,7 +79,7 @@
               </tr>
               {% empty %}
               <tr>
-                <td colspan="4" class="text-center text-muted py-8">No users found</td>
+                <td colspan="5" class="text-center text-muted py-8">No users found</td>
               </tr>
               {% endfor %}
             </tbody>

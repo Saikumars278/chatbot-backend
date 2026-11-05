@@ -11,7 +11,7 @@ urlpatterns = [
     path("admin-dashboard/", views.admin_dashboard, name="admin_dashboard"),
     path("admin-logout/", views.admin_logout, name="admin_logout"),
     path("admin-users/", views.admin_users, name="admin_users"),
-    path("admin-payments/", views.admin_dashboard, name="admin_payments"),
+    path("admin-payments/", views.admin_payments, name="admin_payments"),
     path("admin-subscriptions/", views.admin_dashboard, name="admin_subscriptions"),
 
     path('api/admin/send-forgot-otp/', views.admin_send_forgot_otp, name='admin_send_forgot_otp'),

@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SmartBot - Payments Log</title>
+  <title>SmartBot Platform - Payment Details</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -20,45 +20,144 @@
       <!-- Topbar Header -->
       <header class="topbar">
         <div class="topbar-left">
-          <h1>Payment Log</h1>
-          <p>Transaction records and Razorpay orders</p>
+          <h1>Payment Details</h1>
+          <p>Transaction records, Razorpay order IDs, verification and revenue logs</p>
         </div>
 
         <div class="admin-profile">
           <div class="avatar">A</div>
           <div class="profile-info">
             <h4>Administrator</h4>
-            <p>Super User</p>
+            <p>Super User · Online</p>
           </div>
         </div>
       </header>
 
+      <!-- Four Summary Metric Cards -->
+      <section class="stats-grid">
+        <!-- 1. Total Users Card -->
+        <div class="stat-card">
+          <div class="stat-header">
+            <span class="stat-title">Total Users</span>
+            <div class="stat-icon-wrapper user-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="card-icon">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a3 3 0 0 0-4.681 2.72 8.986 8.986 0 0 0 3.74.477m.94-3.197a5.971 5.971 0 0 0-.94 3.197M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z" />
+              </svg>
+            </div>
+          </div>
+          <div class="stat-number">{{ total_users_count }}</div>
+          <div class="stat-footer text-success">
+            <span class="trend-icon">↑</span>
+            <span>Registered member accounts</span>
+          </div>
+        </div>
+
+        <!-- 2. Total Revenue Card -->
+        <div class="stat-card">
+          <div class="stat-header">
+            <span class="stat-title">Total Revenue</span>
+            <div class="stat-icon-wrapper revenue-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="card-icon">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+              </svg>
+            </div>
+          </div>
+          <div class="stat-number">{{ total_revenue_fmt }}</div>
+          <div class="stat-footer text-success">
+            <span class="trend-icon">✓</span>
+            <span>Verified Razorpay earnings</span>
+          </div>
+        </div>
+
+        <!-- 3. Total Paid Users Card -->
+        <div class="stat-card">
+          <div class="stat-header">
+            <span class="stat-title">Total Paid Users</span>
+            <div class="stat-icon-wrapper paid-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="card-icon">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 0 1-1.043 3.296 3.745 3.745 0 0 1-3.296 1.043A3.745 3.745 0 0 1 12 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 0 1-3.296-1.043 3.745 3.745 0 0 1-1.043-3.296A3.745 3.745 0 0 1 3 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 0 1 1.043-3.296 3.746 3.746 0 0 1 3.296-1.043A3.746 3.746 0 0 1 12 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 0 1 3.296 1.043 3.746 3.746 0 0 1 1.043 3.296A3.745 3.745 0 0 1 21 12Z" />
+              </svg>
+            </div>
+          </div>
+          <div class="stat-number">{{ total_paid_users }}</div>
+          <div class="stat-footer text-info">
+            <span class="trend-icon">★</span>
+            <span>Unlocked Unlimited Access</span>
+          </div>
+        </div>
+
+        <!-- 4. Total Pending/Failed Payments Card -->
+        <div class="stat-card">
+          <div class="stat-header">
+            <span class="stat-title">Pending / Failed</span>
+            <div class="stat-icon-wrapper alert-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="card-icon">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
+              </svg>
+            </div>
+          </div>
+          <div class="stat-number">{{ total_pending_failed }}</div>
+          <div class="stat-footer text-warning">
+            <span class="trend-icon">!</span>
+            <span>Unfinished or created orders</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Main Payment Details Table Card -->
       <section class="table-card" id="payments-section">
         <div class="table-header" style="flex-wrap: wrap; gap: 16px;">
           <div>
-            <h2>Payments Transactions</h2>
-            <p class="table-sub">Razorpay payment verification and gateway details</p>
+            <h2>Payments Transactions Log</h2>
+            <p class="table-sub">Razorpay payment verification, order IDs, payment status and subscription dates</p>
           </div>
-          
-          <form method="GET" class="filter-form" style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
-            <div class="filter-group" style="display: flex; align-items: center; gap: 8px;">
-              <label for="status" style="font-size: 13px; font-weight: 600; color: var(--text-muted);">Status:</label>
-              <select name="status" id="status" class="form-select" style="padding: 6px 12px; font-size: 13px; width: auto; background-color: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-color); border-radius: 6px; color: #ffffff;" onchange="this.form.submit()">
+
+          <!-- Search, Filter, Sort Controls -->
+          <form method="GET" class="filter-form" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+            <!-- Search by user/email -->
+            <div class="filter-group">
+              <input
+                type="text"
+                name="q"
+                class="form-input search-input"
+                placeholder="Search user, email, order ID..."
+                value="{{ search_q }}"
+                style="width: 200px; padding: 7px 12px; font-size: 13px;"
+              >
+            </div>
+
+            <!-- Filter by payment status -->
+            <div class="filter-group">
+              <select name="status" class="form-select" onchange="this.form.submit()" style="padding: 7px 12px; font-size: 13px;">
                 <option value="">All Statuses</option>
                 <option value="paid" {% if selected_status == 'paid' %}selected{% endif %}>Paid</option>
-                <option value="created" {% if selected_status == 'created' %}selected{% endif %}>Created</option>
                 <option value="failed" {% if selected_status == 'failed' %}selected{% endif %}>Failed</option>
+                <option value="pending" {% if selected_status == 'pending' or selected_status == 'created' %}selected{% endif %}>Pending / Created</option>
               </select>
             </div>
-            
-            <div class="filter-group" style="display: flex; align-items: center; gap: 8px;">
-              <label for="plan" style="font-size: 13px; font-weight: 600; color: var(--text-muted);">Plan:</label>
-              <input type="text" name="plan" id="plan" class="form-input" style="padding: 6px 12px; font-size: 13px; width: 140px; background-color: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-color); border-radius: 6px; color: #ffffff;" placeholder="Search plan..." value="{{ selected_plan }}">
+
+            <!-- Filter by plan -->
+            <div class="filter-group">
+              <select name="plan" class="form-select" onchange="this.form.submit()" style="padding: 7px 12px; font-size: 13px;">
+                <option value="">All Plans</option>
+                {% for plan_opt in available_plans %}
+                  <option value="{{ plan_opt }}" {% if selected_plan == plan_opt %}selected{% endif %}>{{ plan_opt }}</option>
+                {% endfor %}
+              </select>
             </div>
-            
-            <button type="submit" class="btn-primary" style="padding: 6px 14px; font-size: 13px; border-radius: 6px;">Filter</button>
-            {% if selected_status or selected_plan %}
-              <a href="/admin-payments/" class="btn-secondary" style="padding: 6px 14px; font-size: 13px; border-radius: 6px;">Clear</a>
+
+            <!-- Sort by payment date -->
+            <div class="filter-group">
+              <select name="sort" class="form-select" onchange="this.form.submit()" style="padding: 7px 12px; font-size: 13px;">
+                <option value="newest" {% if selected_sort == 'newest' %}selected{% endif %}>Date: Newest First</option>
+                <option value="oldest" {% if selected_sort == 'oldest' %}selected{% endif %}>Date: Oldest First</option>
+              </select>
+            </div>
+
+            <button type="submit" class="btn-primary" style="padding: 7px 16px; font-size: 13px; border-radius: 8px;">Filter</button>
+
+            {% if search_q or selected_status or selected_plan or selected_sort != 'newest' %}
+              <a href="/admin-payments/" class="btn-secondary" style="padding: 7px 14px; font-size: 13px; border-radius: 8px;">Clear</a>
             {% endif %}
           </form>
         </div>
@@ -67,36 +166,63 @@
           <table>
             <thead>
               <tr>
-                <th>User</th>
-                <th>Plan</th>
-                <th>Amount</th>
+                <th>User Name</th>
+                <th>Email</th>
+                <th>Plan Name</th>
+                <th>Amount (₹)</th>
+                <th>Razorpay Order ID</th>
+                <th>Razorpay Payment ID</th>
+                <th>Payment Status</th>
                 <th>Payment Date</th>
-                <th>Order ID / Payment ID</th>
+                <th>Sub Start</th>
+                <th>Sub Expiry</th>
                 <th>Status</th>
               </tr>
             </thead>
             <tbody>
-              {% for payment in payments %}
+              {% for p in payments %}
               <tr>
-                <td class="font-semibold">{{ payment.user }}</td>
+                <td class="font-semibold">{{ p.user_name }}</td>
+                <td class="text-muted">{{ p.email }}</td>
                 <td>
-                  <span class="plan-pill">{{ payment.plan_name }}</span>
+                  <span class="plan-pill">{{ p.plan_name }}</span>
                 </td>
-                <td class="amount-val font-semibold">{{ payment.amount }}</td>
-                <td>{{ payment.payment_date }}</td>
+                <td class="amount-val font-semibold">{{ p.amount }}</td>
                 <td>
-                  <div class="text-sm font-mono text-muted">{{ payment.razorpay_order_id|default:"N/A" }}</div>
-                  <div class="text-xs font-mono text-muted" style="margin-top: 2px;">{{ payment.razorpay_payment_id|default:"" }}</div>
+                  <span class="font-mono text-xs text-muted">{{ p.razorpay_order_id }}</span>
                 </td>
                 <td>
-                  <span class="status-badge {{ payment.status }}">
-                    {{ payment.status }}
-                  </span>
+                  <span class="font-mono text-xs text-muted">{{ p.razorpay_payment_id }}</span>
+                </td>
+                <td>
+                  {% if p.status == 'Paid' %}
+                    <span class="status-badge paid">Paid</span>
+                  {% elif p.status == 'Failed' %}
+                    <span class="status-badge failed">Failed</span>
+                  {% else %}
+                    <span class="status-badge pending">Pending</span>
+                  {% endif %}
+                </td>
+                <td class="text-sm">{{ p.payment_date }}</td>
+                <td class="text-sm">{{ p.sub_start_date }}</td>
+                <td class="text-sm">
+                  {% if p.sub_expiry_date != 'N/A' %}
+                    <span class="status-date">{{ p.sub_expiry_date }}</span>
+                  {% else %}
+                    <span class="text-muted">N/A</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if p.is_active %}
+                    <span class="active-badge active">● Active</span>
+                  {% else %}
+                    <span class="active-badge inactive">○ Inactive</span>
+                  {% endif %}
                 </td>
               </tr>
               {% empty %}
               <tr>
-                <td colspan="6" class="text-center text-muted py-8">No payments logged</td>
+                <td colspan="11" class="text-center text-muted py-8">No payment records found</td>
               </tr>
               {% endfor %}
             </tbody>

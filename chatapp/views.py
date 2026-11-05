@@ -10,7 +10,7 @@ from rest_framework.response import Response
 
 from django.conf import settings
 from django.core.mail import send_mail
-from django.db.models import Q
+from django.db.models import Q, Sum
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
 from django.contrib.auth import login as auth_login
@@ -296,57 +296,129 @@ def admin_reset_password(request):
 
 @login_required(login_url="admin_login")
 def admin_dashboard(request):
+    search_q = request.GET.get("q", "").strip()
+    status_filter = request.GET.get("status", "").strip()
+    plan_filter = request.GET.get("plan", "").strip()
+    sort_by = request.GET.get("sort", "newest").strip()
+
     users_count = User.objects.filter(is_superuser=False, is_staff=False).count()
     plans_count = Plan.objects.count()
     payments_count = Payment.objects.count()
     subscriptions_count = Subscription.objects.count()
 
+    # Four core metric cards requested by user
+    total_revenue = Payment.objects.filter(status__iexact="paid").aggregate(Sum("amount"))["amount__sum"] or 0
+    total_paid_users = Payment.objects.filter(status__iexact="paid").values("user").distinct().count()
+    total_pending_failed = Payment.objects.exclude(status__iexact="paid").count()
+
     raw_users = User.objects.filter(is_superuser=False, is_staff=False).order_by("-date_joined")[:10]
     recent_users = []
     for u in raw_users:
+        paid_p = Payment.objects.filter(user=u, status__iexact="paid").order_by("-id").first()
         sub = Subscription.objects.filter(user=u).order_by("-id").first()
 
         expiry_date = "N/A"
-        if sub:
+        if sub and sub.created_at:
             expiry_date = (sub.created_at + timedelta(days=30)).strftime("%d %b %Y")
+        elif paid_p:
+            expiry_date = "Unlimited"
+
+        is_paid = bool(paid_p or (sub and sub.status == "active"))
+        paid_amount = paid_p.amount if paid_p else 299
+        plan_name = paid_p.plan_name if paid_p else (sub.plan.name if sub and sub.plan else "Free")
+
+        if is_paid:
+            plan_status_text = f"₹{paid_amount} Paid • Unlimited"
+        else:
+            plan_status_text = "Free Plan • Not Paid"
 
         recent_users.append({
             "name": u.first_name if u.first_name else u.username,
             "email": u.email if u.email else "No email",
             "joined_date": u.date_joined.strftime("%d %b %Y") if u.date_joined else "N/A",
-            "expiry_date": expiry_date
+            "expiry_date": expiry_date,
+            "is_paid": is_paid,
+            "paid_amount": paid_amount,
+            "plan_name": plan_name,
+            "plan_status_text": plan_status_text,
         })
 
-    raw_payments = Payment.objects.select_related("user").all().order_by("-id")[:10]
+    # Payment Details section with search, filters and sorting
+    payments_qs = Payment.objects.select_related("user").all()
+
+    if search_q:
+        payments_qs = payments_qs.filter(
+            Q(user__username__icontains=search_q) |
+            Q(user__first_name__icontains=search_q) |
+            Q(user__email__icontains=search_q) |
+            Q(razorpay_order_id__icontains=search_q) |
+            Q(razorpay_payment_id__icontains=search_q)
+        )
+
+    if status_filter:
+        payments_qs = payments_qs.filter(status__iexact=status_filter)
+
+    if plan_filter:
+        payments_qs = payments_qs.filter(plan_name__icontains=plan_filter)
+
+    if sort_by == "oldest":
+        payments_qs = payments_qs.order_by("created_at")
+    else:
+        payments_qs = payments_qs.order_by("-created_at")
+
     payments = []
-    for p in raw_payments:
+    for p in payments_qs:
+        sub = Subscription.objects.filter(user=p.user).order_by("-created_at").first()
+        sub_start = sub.created_at.strftime("%d %b %Y") if sub and sub.created_at else (p.created_at.strftime("%d %b %Y") if p.created_at else "N/A")
+        sub_expiry = (sub.created_at + timedelta(days=30)).strftime("%d %b %Y") if sub and sub.created_at else ("Lifetime" if p.status == "paid" else "N/A")
+
+        p_status_lower = (p.status or "").lower()
+        if p_status_lower == "paid":
+            display_status = "Paid"
+            is_active = True
+        elif p_status_lower in ["failed", "error"]:
+            display_status = "Failed"
+            is_active = False
+        else:
+            display_status = "Pending"
+            is_active = False
+
         payments.append({
-            "user": p.user.first_name or p.user.username,
+            "id": p.id,
+            "user_name": p.user.first_name or getattr(getattr(p.user, "userprofile", None), "full_name", None) or p.user.username,
+            "email": p.user.email or "No email",
             "plan_name": p.plan_name,
             "amount": f"₹{p.amount}",
-            "payment_date": p.created_at.strftime("%d %b %Y") if p.created_at else "N/A",
-            "status": p.status
+            "amount_raw": p.amount,
+            "razorpay_order_id": p.razorpay_order_id or "N/A",
+            "razorpay_payment_id": p.razorpay_payment_id or "N/A",
+            "status": display_status,
+            "status_raw": p.status,
+            "payment_date": p.created_at.strftime("%d %b %Y, %I:%M %p") if p.created_at else "N/A",
+            "sub_start_date": sub_start,
+            "sub_expiry_date": sub_expiry,
+            "is_active": is_active,
+            "active_status": "Active" if is_active else "Inactive",
         })
 
-    raw_subs = Subscription.objects.select_related("user", "plan").all().order_by("-id")[:10]
-    subscriptions = []
-    for s in raw_subs:
-        subscriptions.append({
-            "user": s.user.first_name or s.user.username,
-            "plan_name": s.plan.name if s.plan else "N/A",
-            "start_date": s.created_at.strftime("%d %b %Y") if s.created_at else "N/A",
-            "expiry_date": (s.created_at + timedelta(days=30)).strftime("%d %b %Y") if s.created_at else "N/A",
-            "status": s.status
-        })
+    available_plans = Plan.objects.values_list("name", flat=True).distinct()
 
     context = {
         "users_count": users_count,
         "plans_count": plans_count,
         "payments_count": payments_count,
         "subscriptions_count": subscriptions_count,
+        "total_revenue": total_revenue,
+        "total_revenue_fmt": f"₹{total_revenue:,}",
+        "total_paid_users": total_paid_users,
+        "total_pending_failed": total_pending_failed,
         "recent_users": recent_users,
         "payments": payments,
-        "subscriptions": subscriptions,
+        "search_q": search_q,
+        "selected_status": status_filter,
+        "selected_plan": plan_filter,
+        "selected_sort": sort_by,
+        "available_plans": available_plans,
     }
 
     return render(request, "admin_dashboard.html", context)
@@ -362,48 +434,120 @@ def admin_users(request):
     raw_users = User.objects.filter(is_superuser=False, is_staff=False).order_by("-date_joined")
     users_list = []
     for u in raw_users:
+        paid_p = Payment.objects.filter(user=u, status__iexact="paid").order_by("-id").first()
         sub = Subscription.objects.filter(user=u).order_by("-id").first()
 
         expiry_date = "N/A"
-        if sub:
+        if sub and sub.created_at:
             expiry_date = (sub.created_at + timedelta(days=30)).strftime("%d %b %Y")
+        elif paid_p:
+            expiry_date = "Unlimited"
+
+        is_paid = bool(paid_p or (sub and sub.status == "active"))
+        paid_amount = paid_p.amount if paid_p else 299
+        plan_name = paid_p.plan_name if paid_p else (sub.plan.name if sub and sub.plan else "Free")
+
+        if is_paid:
+            plan_status_text = f"₹{paid_amount} Paid • Unlimited"
+        else:
+            plan_status_text = "Free Plan • Not Paid"
 
         users_list.append({
             "name": u.first_name if u.first_name else u.username,
             "email": u.email if u.email else "No email",
             "joined_date": u.date_joined.strftime("%d %b %Y") if u.date_joined else "N/A",
-            "expiry_date": expiry_date
+            "expiry_date": expiry_date,
+            "is_paid": is_paid,
+            "paid_amount": paid_amount,
+            "plan_name": plan_name,
+            "plan_status_text": plan_status_text,
         })
     return render(request, "users.html", {"users": users_list})
 
 
 @login_required(login_url="admin_login")
 def admin_payments(request):
-    status_filter = request.GET.get("status", "")
-    plan_filter = request.GET.get("plan", "")
+    search_q = request.GET.get("q", "").strip()
+    status_filter = request.GET.get("status", "").strip()
+    plan_filter = request.GET.get("plan", "").strip()
+    sort_by = request.GET.get("sort", "newest").strip()
 
-    payments_qs = Payment.objects.select_related("user").all().order_by("-id")
+    payments_qs = Payment.objects.select_related("user").all()
+
+    if search_q:
+        payments_qs = payments_qs.filter(
+            Q(user__username__icontains=search_q) |
+            Q(user__first_name__icontains=search_q) |
+            Q(user__email__icontains=search_q) |
+            Q(razorpay_order_id__icontains=search_q) |
+            Q(razorpay_payment_id__icontains=search_q)
+        )
+
     if status_filter:
-        payments_qs = payments_qs.filter(status=status_filter)
+        payments_qs = payments_qs.filter(status__iexact=status_filter)
+
     if plan_filter:
         payments_qs = payments_qs.filter(plan_name__icontains=plan_filter)
 
+    if sort_by == "oldest":
+        payments_qs = payments_qs.order_by("created_at")
+    else:
+        payments_qs = payments_qs.order_by("-created_at")
+
+    total_revenue = Payment.objects.filter(status__iexact="paid").aggregate(Sum("amount"))["amount__sum"] or 0
+    total_paid_users = Payment.objects.filter(status__iexact="paid").values("user").distinct().count()
+    total_pending_failed = Payment.objects.exclude(status__iexact="paid").count()
+    total_users_count = User.objects.filter(is_superuser=False, is_staff=False).count()
+
     payments_list = []
     for p in payments_qs:
+        sub = Subscription.objects.filter(user=p.user).order_by("-created_at").first()
+        sub_start = sub.created_at.strftime("%d %b %Y") if sub and sub.created_at else (p.created_at.strftime("%d %b %Y") if p.created_at else "N/A")
+        sub_expiry = (sub.created_at + timedelta(days=30)).strftime("%d %b %Y") if sub and sub.created_at else ("Lifetime" if p.status == "paid" else "N/A")
+
+        p_status_lower = (p.status or "").lower()
+        if p_status_lower == "paid":
+            display_status = "Paid"
+            is_active = True
+        elif p_status_lower in ["failed", "error"]:
+            display_status = "Failed"
+            is_active = False
+        else:
+            display_status = "Pending"
+            is_active = False
+
         payments_list.append({
-            "user": p.user.first_name or p.user.username,
+            "id": p.id,
+            "user_name": p.user.first_name or getattr(getattr(p.user, "userprofile", None), "full_name", None) or p.user.username,
+            "email": p.user.email or "No email",
             "plan_name": p.plan_name,
             "amount": f"₹{p.amount}",
-            "payment_date": p.created_at.strftime("%d %b %Y") if p.created_at else "N/A",
-            "status": p.status,
-            "razorpay_order_id": p.razorpay_order_id,
-            "razorpay_payment_id": p.razorpay_payment_id
+            "amount_raw": p.amount,
+            "razorpay_order_id": p.razorpay_order_id or "N/A",
+            "razorpay_payment_id": p.razorpay_payment_id or "N/A",
+            "status": display_status,
+            "status_raw": p.status,
+            "payment_date": p.created_at.strftime("%d %b %Y, %I:%M %p") if p.created_at else "N/A",
+            "sub_start_date": sub_start,
+            "sub_expiry_date": sub_expiry,
+            "is_active": is_active,
+            "active_status": "Active" if is_active else "Inactive",
         })
+
+    available_plans = Plan.objects.values_list("name", flat=True).distinct()
 
     return render(request, "payments.html", {
         "payments": payments_list,
+        "total_revenue": total_revenue,
+        "total_revenue_fmt": f"₹{total_revenue:,}",
+        "total_paid_users": total_paid_users,
+        "total_pending_failed": total_pending_failed,
+        "total_users_count": total_users_count,
+        "search_q": search_q,
         "selected_status": status_filter,
-        "selected_plan": plan_filter
+        "selected_plan": plan_filter,
+        "selected_sort": sort_by,
+        "available_plans": available_plans,
     })
 
 
