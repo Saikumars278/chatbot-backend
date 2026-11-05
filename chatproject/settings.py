@@ -61,10 +61,12 @@ CSRF_TRUSTED_ORIGINS = [
     "https://*.netlify.app",
 ]
 
-SESSION_COOKIE_SAMESITE = 'None'
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SAMESITE = 'None'
-CSRF_COOKIE_SECURE = True
+# Production on Render uses HTTPS (SameSite=None, Secure=True)
+# Local development on HTTP uses SameSite=Lax, Secure=False so sessions work on localhost
+SESSION_COOKIE_SAMESITE = 'None' if not DEBUG else 'Lax'
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SAMESITE = 'None' if not DEBUG else 'Lax'
+CSRF_COOKIE_SECURE = not DEBUG
 
 
 ROOT_URLCONF = 'chatproject.urls'
@@ -152,8 +154,9 @@ else:
     GROQ_API_KEY = _raw_key
 GROQ_MODEL = os.getenv("GROQ_MODEL", "groq/compound")
 
-RAZORPAY_KEY_ID = ''
-RAZORPAY_KEY_SECRET = ''
+RAZORPAY_KEY_ID = os.getenv('RAZORPAY_KEY_ID', '')
+RAZORPAY_KEY_SECRET = os.getenv('RAZORPAY_KEY_SECRET', '')
+RAZORPAY_WEBHOOK_SECRET = os.getenv('RAZORPAY_WEBHOOK_SECRET', '')
 
 # Email Settings (Brevo REST API & SMTP fallback - loaded from .env)
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
@@ -166,4 +169,4 @@ DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'SmartBot Workspace <b61a24
 
 # Brevo HTTPS REST API configuration
 BREVO_API_KEY = os.getenv('BREVO_API_KEY', os.getenv('BREVO_SMTP_PASSWORD', ''))
-BREVO_SENDER_EMAIL = os.getenv('BREVO_SENDER_EMAIL', 'b61a24001@smtp-brevo.com')
+BREVO_SENDER_EMAIL = os.getenv('BREVO_SENDER_EMAIL', 'b61a24001@smtp-brevo.com')
