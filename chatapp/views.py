@@ -814,7 +814,7 @@ def create_chat(request):
         return Response({
             "success": False,
             "payment_required": True,
-            "message": "Free limit reached (5 free chats). Upgrade for ₹299 to unlock unlimited chats."
+            "message": "Free limit reached (5 free chats). Upgrade for ₹599 to unlock unlimited chats."
         })
 
     chat = ChatHistory.objects.create(title=title, user=user)
@@ -914,7 +914,7 @@ def send_message(request, chat_id=None):
                     "payment_required": True,
                     "user_count": user_count,
                     "remaining_chats": 0,
-                    "message": "Free limit reached (5 free chats). Upgrade to Unlimited Access for ₹299 to continue."
+                    "message": "Free limit reached (5 free chats). Upgrade to Unlimited Access for ₹599 to continue."
                 })
 
     user_text = request.data.get("message")
@@ -1139,7 +1139,7 @@ def chat_status(request):
                 "limit_reached": limit_reached,
                 "login_required": False,
                 "payment_required": limit_reached,
-                "status_text": f"{remaining} Free Chats" if remaining > 0 else "Payment Required (₹299)"
+                "status_text": f"{remaining} Free Chats" if remaining > 0 else "Payment Required (₹599)"
             })
 
 
@@ -1191,29 +1191,32 @@ def create_default_plans(request):
         name="Plus",
         price="₹0",
         note="INR / month",
-        description="More access to advanced intelligence",
-        is_featured=False
+        description="5 free chats to get started",
+        is_featured=False,
+        is_active=True
+    )
+
+    Plan.objects.create(
+        name="Student",
+        price="₹599",
+        note="INR / month",
+        description="Unlimited AI access for students & learners",
+        is_featured=True,
+        is_active=True
     )
 
     Plan.objects.create(
         name="Business",
-        price="₹1,800",
+        price="₹999",
         note="/ user / month",
         description="Best for teams and companies",
-        is_featured=True
-    )
-
-    Plan.objects.create(
-        name="Pro",
-        price="₹10,699",
-        note="INR / month",
-        description="Maximize your productivity",
-        is_featured=False
+        is_featured=False,
+        is_active=True
     )
 
     return Response({
         "success": True,
-        "message": "Default plans created"
+        "message": "Default plans created (Plus, Student ₹599, Business ₹999)"
     })
 
 
@@ -1265,18 +1268,35 @@ def create_razorpay_order(request):
     if not request.user.is_authenticated:
         return Response({'success': False, 'message': 'Please log in to upgrade to Unlimited Access'})
 
-    plan = Plan.objects.filter(name="Unlimited Access").first()
+    plan = None
+    plan_id = request.data.get("plan_id")
+    if plan_id:
+        try:
+            plan = Plan.objects.get(id=plan_id)
+        except Plan.DoesNotExist:
+            pass
+
     if not plan:
-        plan = Plan.objects.create(
-            name="Unlimited Access",
-            price="₹299",
-            note="one-time",
-            description="Unlimited AI chat access",
-            is_featured=True,
-            is_active=True
+        plan_name = request.data.get("plan_name", "Student")
+        plan = Plan.objects.filter(name__iexact=plan_name).first()
+
+    if not plan:
+        plan = Plan.objects.filter(is_featured=True).first()
+
+    if not plan:
+        plan, _ = Plan.objects.get_or_create(
+            name="Student",
+            defaults={
+                'price': '₹599',
+                'note': 'INR / month',
+                'description': 'Unlimited AI access for students & learners',
+                'is_featured': True,
+                'is_active': True
+            }
         )
 
-    amount_in_rupees = 299
+    digits = re.sub(r'[^\d]', '', str(plan.price))
+    amount_in_rupees = int(digits) if digits else int(request.data.get("amount", 599))
     amount_in_paise = amount_in_rupees * 100
 
     try:
@@ -1321,6 +1341,7 @@ def verify_razorpay_payment(request):
     razorpay_payment_id = request.data.get('razorpay_payment_id')
     razorpay_order_id = request.data.get('razorpay_order_id')
     razorpay_signature = request.data.get('razorpay_signature')
+    plan_id = request.data.get('plan_id')
 
     if not razorpay_payment_id or not razorpay_order_id or not razorpay_signature:
         return Response({'success': False, 'message': 'Payment details missing'})
@@ -1335,10 +1356,23 @@ def verify_razorpay_payment(request):
         # Cryptographically verify Razorpay signature
         client.utility.verify_payment_signature(params_dict)
 
-        plan, _ = Plan.objects.get_or_create(
-            name="Unlimited Access",
-            defaults={'price': '₹299', 'note': 'one-time', 'is_featured': True}
-        )
+        plan = None
+        if plan_id:
+            try:
+                plan = Plan.objects.get(id=plan_id)
+            except Plan.DoesNotExist:
+                pass
+
+        if not plan:
+            plan = Plan.objects.filter(name__iexact="Student").first() or Plan.objects.filter(is_featured=True).first()
+            if not plan:
+                plan, _ = Plan.objects.get_or_create(
+                    name="Student",
+                    defaults={'price': '₹599', 'note': 'INR / month', 'is_featured': True}
+                )
+
+        digits = re.sub(r'[^\d]', '', str(plan.price))
+        amount_in_rupees = int(digits) if digits else 599
 
         # Grant active subscription to user in database
         subscription, _ = Subscription.objects.update_or_create(
@@ -1352,7 +1386,7 @@ def verify_razorpay_payment(request):
             defaults={
                 'user': request.user,
                 'plan_name': plan.name,
-                'amount': 299,
+                'amount': amount_in_rupees,
                 'razorpay_payment_id': razorpay_payment_id,
                 'razorpay_signature': razorpay_signature,
                 'status': 'paid'
@@ -1361,7 +1395,7 @@ def verify_razorpay_payment(request):
 
         return Response({
             'success': True,
-            'message': 'Payment verified successfully! Unlimited access unlocked.',
+            'message': f'Payment verified successfully! {plan.name} plan unlocked.',
             'is_paid': True,
             'plan': plan.name,
             'subscription': {
